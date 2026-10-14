@@ -3,7 +3,7 @@
 **Owner:** Cade (CMRLM)
 **For:** Cade and Casey, fall 2027 honeymoon
 **Date:** 2026-10-13
-**Status:** Phases 0 to 3 done. Phase 3 (route and fly-through) is complete and live at https://cmrlmatthews-max.github.io/japanmap/ since 2026-10-14. Phase 4 (fall, light, mist) is next.
+**Status:** Phases 0 to 3 done, plus the English-first redesign (2026-10-14). Phase 3 (route and fly-through) is complete and live at https://cmrlmatthews-max.github.io/japanmap/ since 2026-10-14. Phase 4 (fall, light, mist) is next.
 
 ---
 
@@ -45,8 +45,8 @@ Companion files:
 **Calligraphy**
 
 - Title: 日本の旅 as a brush image (Gemini asset) with a fallback in Yuji Syuku.
-- Place labels: kanji in Yuji Syuku, hiragana reading below in small Shippori Mincho, English below that.
-- Seal pins: red hanko (seal) squares with one kanji per category, drawn live in a canvas texture with Yuji Syuku. Gemini could not produce an exact kanji grid, so no image asset is used. See section 4.
+- Place labels: English short name in Shippori Mincho. (Changed 2026-10-14: English first. See section 15.)
+- Seal pins: red hanko (seal) squares with one ink pictogram per category, drawn live in a canvas texture. (Changed 2026-10-14 from kanji. See section 15.)
 
 **Scroll frame**
 
@@ -360,7 +360,11 @@ Not placed yet: Nara Park (the Day 9 walk crosses it), Kyoto Imperial Palace (ne
 
 **Data method:** OSM data came from Overpass through Chrome and through curl on the Mac (osascript). The cloud cannot reach Overpass. OSM renamed the Hakone Tozan line to 小田急箱根鉄道線 in 2024.
 
-## 15. Next step
+## 15. English-first redesign (2026-10-14)
+
+Cade reads no Japanese. English is now the default everywhere. The red hanko stamps stay, but they hold ink-brush pictograms instead of kanji (temple pagoda, torii gate, inn, tree, building, steam, robot, brush, and travel modes). Japanese remains only as art: the 日本の旅 title calligraphy and one small grey kanji line on each place card. The icons are drawn in code now. Painted Gemini icons can replace them later through `ICON_ART` in `js/icons.js`. This replaces the "kanji plus hiragana readings" rule in section 2.
+
+## 16. Next step
 
 1. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad and tests Phase 3. Delete the old Home Screen icon first, or wait for the v4 cache to load.
 2. Cade and Casey edit their plans. Tell Claude the changes. Claude updates `tools/build-itinerary.py` and pushes.

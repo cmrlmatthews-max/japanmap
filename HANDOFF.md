@@ -1,7 +1,7 @@
 # HANDOFF — Journey Through Japan (日本の旅) 3D map
 
 Read this first in a new chat. It holds the state, the decisions, and the working method.
-Last update: 2026-10-14, end of Phase 3. The app is live on GitHub Pages.
+Last update: 2026-10-14, Phase 3 plus the English-first redesign. The app is live on GitHub Pages.
 
 ## Project in one paragraph
 
@@ -18,7 +18,7 @@ japan-3d-map/
 ├── places-and-data.md         ← first place list, transit, data sources, foliage dates, fonts (SUPERSEDED for coordinates by data/places.json)
 ├── gemini-prompts.md          ← image prompts + status table of what was generated
 ├── index.html, css/style.css, manifest.json
-├── sw.js                      ← offline cache, name 'nihon-no-tabi-v3'. Bump the version when a cached file changes.
+├── sw.js                      ← offline cache, name 'nihon-no-tabi-v5'. Bump the version when a cached file changes.
 ├── js/app.js                  ← renderer, camera, region flights, place fly-to, free-area aiming, labels, mist
 ├── js/terrain.js              ← world frame, file loaders, base and patch meshes, lonLatToWorld(), heightAtWorld()
 ├── js/ink-shader.js           ← ShaderMaterial: height bands, dry-brush streaks, contours, coast, washi grain, edge fade, patch cut-outs
@@ -26,7 +26,8 @@ japan-3d-map/
 ├── js/ui.js                   ← info card, region crests, category filter row, who picker, saved choices (localStorage)
 ├── js/route.js                ← Phase 3: route layer (ink-brush ribbons on the terrain), faint rail network, station ticks
 ├── js/trip.js                 ← Phase 3: itinerary drawer (washi page) and fly-through player (play, pause, scrub)
-├── js/tips.js                 ← Phase 3: symbol tooltips (hover on Mac, long press on iPhone and iPad)
+├── js/tips.js                 ← Phase 3: help tooltips in English (hover on Mac, long press on iPhone and iPad)
+├── js/icons.js                ← ink-brush pictogram set (24 icons), red stamp builder, PNG override hook (ICON_ART)
 ├── css/route.css, css/trip.css, css/tips.css ← Phase 3 styles, one file per module
 ├── data/central-japan-z9.bin  ← base terrain, z9, 2048x768
 ├── data/hakone-fuji-z11.bin   ← patch, z11, 1280x1280
@@ -118,9 +119,12 @@ Notes to recheck before the trip:
 
 ## Decisions already made (do not re-ask)
 
+- **English first (2026-10-14, Cade).** Cade reads no Japanese. All readable text is English. Red stamps hold ink pictograms (js/icons.js), not kanji. The only Japanese in the UI: one small grey kanji line on the place card, the 日本の旅 title artwork, and the title tooltip that explains it. This replaces the earlier "kanji plus hiragana readings" rule.
+- Icons are drawn in code for now. Cade may switch to painted Gemini icons later: put `assets/web/icons/<name>.png` in place and register it in `ICON_ART` (see the top of js/icons.js). Graphics are very important: the app is an art piece.
+
 - Style: B2 ink wash. Palette: paper #F5EFE0, ink #2C2C2A, greys #B9B6AC / #8E8B82 / #5B5952, vermilion #C8341E only accent, gold #C9A227 fall only.
-- Fonts: Yuji Syuku (kanji labels), Shippori Mincho (readings, body). Google Fonts.
-- Seal pins render live in canvas textures with Yuji Syuku. No image asset (Gemini could not make the kanji grid).
+- Fonts: Shippori Mincho (English UI text), Cormorant Garamond 500/600 (big English headings), Yuji Syuku (only the card's kanji line). Google Fonts.
+- Seal pins render live in canvas textures with the category icon (drawIcon). Pin labels use the English `short` name from places.json.
 - Camera: slow and deliberate. 2 s fly-to on tap. Region flights take about 3.5 s with an arc. "Still camera" seal toggle (動). Tilt limit 20–70°. Layer toggles never move the camera.
 - Osaka is a full stop. Two itinerary files (Cade, Casey) that merge. Sound yes, off by default (Phase 6).
 - One continuous world. One base file plus three patches. No separate scene per region.
@@ -135,7 +139,7 @@ Notes to recheck before the trip:
 - Route styles: Shinkansen thick vermilion dashes, local thin ink, walk dots, bus thin grey, boat thin wavy, ropeway thin with ticks.
 - Fly-through: one scrub bar for the whole trip. Hop 6 to 8 s, pause 3 s.
 - Drawer: bottom sheet on iPhone portrait (and iPad portrait), docked right on iPad landscape and iPhone landscape.
-- Tooltips with the English translation: hover on the Mac, long press on touch. No tooltips on map pins.
+- Tooltips are plain English help: hover on the Mac, long press on touch. No tooltips on map pins.
 
 ## Phase status
 
@@ -252,11 +256,29 @@ The app now shows the trip route on the terrain and flies along it. Cade gave "d
 - Opus reviewed the screenshots in `_scratch/p3-*.png`, `p3c-*.png`, `route-*.png`, `trip-*.png`, `tips-*.png`.
 - In SwiftShader a screenshot can catch the paper fade or a CSS transition half way. Wait about 3 s after a cut.
 
+## English-first redesign (2026-10-14)
+
+Cade found the kanji-led UI hard to read. He chose direction B: icons in the red stamps and English words everywhere.
+
+- **Masthead:** the brush title art stays. "Journey Through Japan" under it is the readable title.
+- **Person button:** a red pill with an icon and "Cade" or "Casey". The picker asks "Who is using this phone?"
+- **Stamps:** icon plus word. Layers: Route, Mist, Motion, Sound. Categories: Temples, Shrines, Inns, Gardens, Buildings, Hot springs, Tech, Art. Crests: English captions and an "All" button.
+- **Map lettering:** English only. Regions in letter-spaced capitals, landmarks in italics. Station labels are English.
+- **Pins:** category icon in the seal. Label = `short` (new field in places.json, max 20 characters, made by Haiku).
+- **Card:** icon, category, "Must-see" or "Suggestion"; the English name as the title; one grey kanji line; region; why; Architect, Best time, Booking, Price tier.
+- **Drawer:** "Itinerary · Starter plan", a big "Day 3", the English day title, "Tokyo · 4 stops", stops with a category word, legs with a mode icon ("Bullet train · 2 h 5 min").
+- **Tooltips:** English help, for example "Temples · Tap to hide".
+- **Icons I want to improve:** architecture (generic), ryokan (busy at 18 px), stay (the pillow reads as a pedestal), boat. These are good candidates for painted Gemini icons.
+- **Tests:** `en-shots.mjs`, `en-scan.mjs` (finds any Japanese in the rendered UI), `icons-shots.mjs`, plus the updated `tips-func.mjs` and `trip-func.mjs`. All pass. Screens: `_scratch/en-*.png`, `_scratch/icons-*.png`.
+- **To check on a device:** Cormorant Garamond did not load in the cloud tests (fonts are blocked there).
+
 ### Known issues after Phase 3
 
 - When the phone sheet is open, a day tap frames the day in the small map area above the sheet. Long days (Day 6, Hakone to Kyoto) then look far away.
 - Day 9 has 6 stops (Fushimi Inari, Nintendo Museum, Nara, then Osaka). It is a long day. Consider moving Nintendo to Day 8.
 - On iPad landscape the overview map uses only the area left of the crests.
+- On iPad landscape an open place card covers the right end of the player bar.
+- On iPhone portrait the category cells are only 31–41 px wide to fit eight English captions.
 - The day tabs scroll sideways in the docked drawer.
 - The two itinerary files do not merge yet (Phase 5). The app shows the file of the current person.
 - Nobody has tested Phase 3 on a real iPhone or iPad.

@@ -2,26 +2,26 @@
 // The drawer lists the days, stops and legs. The player plays the whole trip as a slow flight: a hop along each leg, then a pause at each stop.
 // Layout (see css/trip.css): bottom sheet on iPhone portrait and iPad portrait; docked on the right on iPad landscape and iPhone landscape.
 import { DOCK_MQ } from './ui.js';
+import { CATS } from './pins.js';
+import { iconSVG } from './icons.js';
 
 const PAUSE_S = 3;                                  // seconds held at each stop
 const STOP_DIST = 34, STOP_POLAR = 45;              // the stop pose: same distance as a place fly-to
 const VIEW = { polar: 52, az: 22 };                 // the region view angle (day framing)
 const LS_KEY = 'jmap.trip.v1';
 
-// mode marks: kanji mark, romaji, English (the data-tip text is "<kanji> · <romaji> · <English>")
+// mode words: the English word and a short help line for the tooltip (the mark itself is a drawn icon)
 const MODES = {
-  shinkansen: { k: '新幹線', r: 'shinkansen', en: 'Bullet train' },
-  local:      { k: '電車', r: 'densha', en: 'Local train' },
-  walk:       { k: '徒歩', r: 'toho', en: 'Walk' },
-  bus:        { k: 'バス', r: 'basu', en: 'Bus' },
-  boat:       { k: '船', r: 'fune', en: 'Boat' },
-  ropeway:    { k: 'ロープウェイ', r: 'rōpuwei', en: 'Ropeway' },
-  funicular:  { k: 'ケーブル', r: 'kēburu', en: 'Funicular' },
+  shinkansen: { en: 'Bullet train', tip: 'Shinkansen, the fast long-distance train' },
+  local:      { en: 'Train',        tip: 'A local or regional train' },
+  walk:       { en: 'Walk',         tip: 'On foot' },
+  bus:        { en: 'Bus',          tip: 'By bus' },
+  boat:       { en: 'Boat',         tip: 'By boat' },
+  ropeway:    { en: 'Ropeway',      tip: 'A mountain gondola' },
+  funicular:  { en: 'Cable car',    tip: 'A cable car on a steep track' },
 };
-const DAY_WORDS = [['一日目', 'ichinichi-me'], ['二日目', 'futsuka-me'], ['三日目', 'mikka-me'], ['四日目', 'yokka-me'], ['五日目', 'itsuka-me'],
-                   ['六日目', 'muika-me'], ['七日目', 'nanoka-me'], ['八日目', 'yōka-me'], ['九日目', 'kokonoka-me'], ['十日目', 'tōka-me']];
-const dayTip = (n) => { const w = DAY_WORDS[n - 1]; return w ? `${w[0]} · ${w[1]} · Day ${n}` : `${n}日目 · ${n}-nichi-me · Day ${n}`; };
-const TIP_PLAY = '再生 · saisei · Play', TIP_PAUSE = '一時停止 · ichiji teishi · Pause';
+const stripJa = (t) => String(t || '').replace(/[\u3000-\u30ff\u3400-\u9fff\uff00-\uffef]+/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s·•:—–-]+|[\s·•:—–-]+$/g, '').trim();
+const TIP_PLAY = 'Play the trip', TIP_PAUSE = 'Pause';
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -32,8 +32,6 @@ const safe = (fn, fallback) => { try { const v = fn(); return v === undefined ? 
 
 function h(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 const SVG = {
-  play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.2v13.6L19.4 12z" fill="currentColor"/></svg>',
-  pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.6v14H7zM13.4 5H17v14h-3.6z" fill="currentColor"/></svg>',
   up: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.2L14 12.2H2z" fill="currentColor"/></svg>',
   right: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 2.5L12 8 5 13.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
@@ -186,7 +184,7 @@ export function initTrip(ctx, route) {
   }
 
   // ---------- play, pause, seek ----------
-  const playBtn = h('button', 'pl-play'); playBtn.type = 'button'; playBtn.innerHTML = SVG.play + SVG.pause;
+  const playBtn = h('button', 'pl-play'); playBtn.type = 'button'; playBtn.innerHTML = iconSVG('play', { size: 22 }) + iconSVG('pause', { size: 22 });
   function setPlayUi() {
     playBtn.classList.toggle('playing', playing);
     playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Play');
@@ -242,9 +240,10 @@ export function initTrip(ctx, route) {
   drawer.innerHTML = '';
   const sheet = h('div', 'd-sheet'), full = h('div', 'd-full');
   const top = h('div', 'd-top'), titleEl = h('div', 'd-title');
-  const tk = h('span', 'dt-k', '旅程'), tt = h('span', 'dt-t'), tn = h('span', 'dt-n');
-  titleEl.append(tk, tt, tn);
-  const foldBtn = h('button', 'd-fold'); foldBtn.type = 'button'; foldBtn.innerHTML = SVG.right; foldBtn.setAttribute('aria-label', 'Fold away the itinerary'); foldBtn.dataset.tip = '畳む · tatamu · Fold away';
+  const tk = h('span', 'dt-k'), tt = h('span', 'dt-t', 'Itinerary'), tp = h('span', 'dt-p'), tn = h('span', 'dt-n');
+  tk.innerHTML = iconSVG('route', { size: 16 });
+  titleEl.append(tk, tt, tp, tn);
+  const foldBtn = h('button', 'd-fold'); foldBtn.type = 'button'; foldBtn.innerHTML = SVG.right; foldBtn.setAttribute('aria-label', 'Fold away the itinerary'); foldBtn.dataset.tip = 'Fold away · Hide the itinerary';
   top.append(titleEl, foldBtn);
   const tabsEl = h('div', 'd-tabs'); tabsEl.setAttribute('role', 'tablist');
   const bodyBox = h('div', 'd-body');
@@ -267,6 +266,7 @@ export function initTrip(ctx, route) {
   setPlayUi();
 
   // ---------- drawer: render ----------
+  const dayTip = (n) => { const t = dayName(days[n - 1] || {}).en; return t ? `Day ${n} · ${t}` : `Day ${n}`; };
   function tabsBuild() {
     tabsEl.innerHTML = '';
     days.forEach((day, i) => {
@@ -287,12 +287,8 @@ export function initTrip(ctx, route) {
       ticks.append(t, l);
     });
   }
-  // the day name: json `kanji` + `title`; when `kanji` is empty the title may start with it ("到着 Arrive — Azabudai")
-  function dayName(day) {
-    let k = day.kanji || '', en = day.title || '';
-    if (!k) { const m = en.match(/^([\u3000-\u9fff\uff00-\uffef]+(?:[・、\s]*[\u3000-\u9fff]+)*)\s*(.*)$/); if (m) { k = m[1].trim(); en = m[2]; } }
-    return { k, en };
-  }
+  // the day name: the English title only (any Japanese in the data is dropped)
+  function dayName(day) { return { en: stripJa(day.title || '') }; }
   const fmtMin = (m) => m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}` : `${m} min`;
   const lineName = (p) => {
     if (p.mode === 'shinkansen') return 'Shinkansen';
@@ -300,8 +296,8 @@ export function initTrip(ctx, route) {
     return MODES[p.mode]?.en || cap(p.mode);
   };
   function modeMark(mode) {
-    const m = MODES[mode] || { k: mode, r: mode, en: cap(mode) };
-    const s = h('span', 'mark m-' + mode, m.k); s.dataset.tip = `${m.k} · ${m.r} · ${m.en}`; return s;
+    const m = MODES[mode] || { en: cap(mode), tip: '' };
+    const s = h('span', 'mark m-' + mode); s.innerHTML = iconSVG(mode, { size: 18 }); s.dataset.tip = m.tip ? `${m.en} · ${m.tip}` : m.en; return s;
   }
   function legRow(day, li, fromName) {
     const leg = (day.legs || [])[li]; if (!leg) return null;
@@ -326,31 +322,31 @@ export function initTrip(ctx, route) {
       if (tb) { const want = tb.offsetLeft - (tabsEl.clientWidth - tb.offsetWidth) / 2; tabsEl.scrollTo({ left: Math.max(0, want), behavior: state.cameraMoves ? 'smooth' : 'auto' }); }
       dayBox.innerHTML = '';
       const nm = dayName(day);
-      dayBox.append(h('div', 'dd-kanji', nm.k), h('div', 'dd-title', nm.en));
+      dayBox.append(h('div', 'dd-day', `Day ${i + 1}`), h('div', 'dd-title', nm.en));
       dayBox.append(h('div', 'dd-meta', daySummary(i)));
       const stay = day.stay && placeOf(day.stay);
-      if (stay) { const s = h('div', 'dd-stay'); s.append(h('span', 'stay-seal', '宿'), h('span', 'stay-t', `Stay · ${stay.name}`), h('span', 'stay-k', stay.kanji || '')); dayBox.append(s); }
+      if (stay) { const s = h('div', 'dd-stay'), sl = h('span', 'stay-seal'); sl.innerHTML = iconSVG('stay', { size: 14 }); s.append(sl, h('span', 'stay-t', `Stay · ${stay.short || stay.name}`)); dayBox.append(s); }
       list.innerHTML = '';
       (day.stops || []).forEach((id, k) => {
         const li = legIndex(i, k);
         const prevId = k > 0 ? day.stops[k - 1] : (i > 0 ? days[i - 1].stops[days[i - 1].stops.length - 1] : null);
         if (li >= 0) { const r = legRow(day, li, k === 0 && i > 0 ? placeOf(prevId)?.name || '' : ''); if (r) list.append(r); }
-        const p = placeOf(id) || { name: id, kanji: '', yomi: '' };
+        const p = placeOf(id) || { name: id };
         const row = h('li', 'stop'); row.dataset.k = k;
         const b = h('button', 'stop-btn'); b.type = 'button'; b.setAttribute('aria-label', 'Fly to ' + p.name);
-        const st = h('span', 'st'); st.append(h('span', 'sk', p.kanji || p.name), h('span', 'sy', p.yomi || ''));
-        b.append(h('span', 'sn', String(k + 1)), st, h('span', 'se', p.name));
+        const st = h('span', 'st'); st.append(h('span', 'sk', p.name), h('span', 'sy', CATS[p.category]?.en || ''));
+        b.append(h('span', 'sn', String(k + 1)), st);
         b.addEventListener('click', () => onStopTap(i, k));
         row.append(b); list.append(row);
       });
-      spN.textContent = String(i + 1); spK.textContent = nm.k;
+      spN.textContent = String(i + 1); spK.textContent = 'Itinerary';
       bodyBox.scrollTop = 0;
       saveDay(i);
       applyNow();
       paintCaption(true);
     }
   }
-  const daySummary = (i) => { const d = days[i]; const n = (d.stops || []).length; return `Day ${i + 1} · ${regionEn(d.region)} · ${n} stop${n === 1 ? '' : 's'}`; };
+  const daySummary = (i) => { const d = days[i]; const n = (d.stops || []).length; return `${regionEn(d.region)} · ${n} stop${n === 1 ? '' : 's'}`; };
   function setNow(seg) { nowStop = seg ? { d: seg.d, k: seg.k } : null; applyNow(true); }
   function applyNow(reveal) {
     let hit = null;
@@ -371,11 +367,11 @@ export function initTrip(ctx, route) {
   // ---------- caption and thumb ----------
   function captionNow() {
     if (!days.length) return '';
-    if (!cursorOn && !playing && !dragging) return daySummary(activeDay);
+    if (!cursorOn && !playing && !dragging) return `Day ${activeDay + 1} · ${daySummary(activeDay)}`;
     const seg = segs[segAt(time)];
-    if (!seg) return daySummary(activeDay);
+    if (!seg) return `Day ${activeDay + 1} · ${daySummary(activeDay)}`;
     const p = placeOf(seg.id);
-    return `Day ${seg.d + 1} · ${regionEn(days[seg.d].region)} · ${p?.kanji || p?.name || ''}`;
+    return `Day ${seg.d + 1} · ${regionEn(days[seg.d].region)} · ${p?.short || p?.name || ''}`;
   }
   function paintCaption(force) {
     const t = captionNow();
@@ -532,7 +528,7 @@ export function initTrip(ctx, route) {
     if (!on) return;
     buildTimeline(); tabsBuild(); ticksBuild();
     const who = Store.who || 'cade';
-    tt.textContent = itin.title || `${cap(who)}’s journey`; tn.textContent = `${days.length} days`;
+    tp.textContent = stripJa(itin.title) || `${cap(who)}’s plan`; tn.textContent = `${days.length} days`;
     const saved = loadSaved()[who]?.day;
     const di = clamp(Number.isInteger(saved) ? saved : 0, 0, days.length - 1);
     dayBox.dataset.built = ''; activeDay = di;

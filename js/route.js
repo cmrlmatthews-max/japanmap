@@ -443,7 +443,7 @@ export async function initRoute(ctx) {
     for (const t of tickList) {
       if (seen.has(t.station.id)) { labels.find(l => l.id === t.station.id).days.push(t.day); continue; }
       seen.add(t.station.id);
-      const el = document.createElement('div'); el.className = 'rstn'; el.textContent = t.station.kanji; scrollEl.appendChild(el);
+      const el = document.createElement('div'); el.className = 'rstn'; el.textContent = t.station.name || t.station.id; scrollEl.appendChild(el);      // English station name
       labels.push({ id: t.station.id, el, pos: new THREE.Vector3(t.c[0], t.c[1], t.c[2]), days: [t.day], on: false, w: 0, h: 0 });
     }
     api.stationCount = labels.length;

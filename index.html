@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#F5EFE0">
-<title>日本の旅 — Journey Through Japan</title>
+<title>Journey Through Japan</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="assets/web/icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Shippori+Mincho:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Shippori+Mincho:wght@400;500&family=Yuji+Syuku&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 <link rel="stylesheet" href="css/route.css">
 <link rel="stylesheet" href="css/trip.css">
@@ -31,54 +31,50 @@
   <div id="capProbe"></div>
 
   <header id="title">
-    <img src="assets/web/title.png" alt="日本の旅">
-    <div class="sub">Journey Through Japan <span class="dot">·</span> Fall 2027</div>
+    <!-- the brush calligraphy stays as art; the English line under it is the readable title -->
+    <img src="assets/web/title.png" alt="Journey Through Japan">
+    <div class="sub"><span class="name">Journey Through Japan</span><span class="yr"><span class="dot">·</span> Fall 2027</span></div>
   </header>
 
-  <button id="who" class="seal on" title="Who is using this phone?" aria-label="Switch person" hidden><span>ケ</span></button>
+  <button id="who" class="seal on" aria-label="Switch person" hidden><span class="who-ic" data-icon="person"></span><span class="who-name"></span></button>
 
   <nav id="seals" aria-label="Layers">
-    <button class="seal on" data-layer="route" title="Route">路</button>
-    <button class="seal on" data-layer="mist" title="Mist">霧</button>
-    <button class="seal on" data-layer="camera" title="Camera moves">動</button>
-    <button class="seal" data-layer="sound" title="Sound">音</button>
+    <button class="seal on" data-layer="route" data-icon="route" aria-label="Route"><span class="lb">Route</span></button>
+    <button class="seal on" data-layer="mist" data-icon="mist" aria-label="Mist"><span class="lb">Mist</span></button>
+    <button class="seal on" data-layer="camera" data-icon="camera" aria-label="Motion"><span class="lb">Motion</span></button>
+    <button class="seal" data-layer="sound" data-icon="sound" aria-label="Sound"><span class="lb">Sound</span></button>
   </nav>
 
   <nav id="crests" aria-label="Regions">
-    <button class="crest overview" data-region="overview" title="Overview" aria-label="Overview"><span class="ov">全</span></button>
-    <button class="crest" data-region="tokyo"  title="Tokyo"  aria-label="Tokyo"><img src="assets/web/crest-tokyo.png"  alt=""><i>東京</i></button>
-    <button class="crest" data-region="kyoto"  title="Kyoto"  aria-label="Kyoto"><img src="assets/web/crest-kyoto.png"  alt=""><i>京都</i></button>
-    <button class="crest" data-region="nara"   title="Nara"   aria-label="Nara"><img src="assets/web/crest-nara.png"   alt=""><i>奈良</i></button>
-    <button class="crest" data-region="osaka"  title="Osaka"  aria-label="Osaka"><img src="assets/web/crest-osaka.png"  alt=""><i>大阪</i></button>
-    <button class="crest" data-region="hakone" title="Hakone" aria-label="Hakone"><img src="assets/web/crest-hakone.png" alt=""><i>箱根</i></button>
-    <button class="crest" data-region="fuji"   title="Fuji"   aria-label="Fuji"><img src="assets/web/crest-fuji.png"   alt=""><i>富士</i></button>
+    <button class="crest overview" data-region="overview" aria-label="All"><span class="ov" data-icon="overview"></span><i>All</i></button>
+    <button class="crest" data-region="tokyo"  aria-label="Tokyo"><img src="assets/web/crest-tokyo.png"  alt=""><i>Tokyo</i></button>
+    <button class="crest" data-region="kyoto"  aria-label="Kyoto"><img src="assets/web/crest-kyoto.png"  alt=""><i>Kyoto</i></button>
+    <button class="crest" data-region="nara"   aria-label="Nara"><img src="assets/web/crest-nara.png"   alt=""><i>Nara</i></button>
+    <button class="crest" data-region="osaka"  aria-label="Osaka"><img src="assets/web/crest-osaka.png"  alt=""><i>Osaka</i></button>
+    <button class="crest" data-region="hakone" aria-label="Hakone"><img src="assets/web/crest-hakone.png" alt=""><i>Hakone</i></button>
+    <button class="crest" data-region="fuji"   aria-label="Mount Fuji"><img src="assets/web/crest-fuji.png"   alt=""><i>Fuji</i></button>
   </nav>
 
   <nav id="filters" aria-label="Categories">
-    <button class="seal on" data-cat="temple" title="Temples">寺</button>
-    <button class="seal on" data-cat="shrine" title="Shrines">社</button>
-    <button class="seal on" data-cat="ryokan" title="Ryokan">宿</button>
-    <button class="seal on" data-cat="garden" title="Gardens">庭</button>
-    <button class="seal on" data-cat="architecture" title="Architecture">建</button>
-    <button class="seal on" data-cat="onsen" title="Onsen">湯</button>
-    <button class="seal on" data-cat="technology" title="Technology">技</button>
-    <button class="seal on" data-cat="art" title="Art">芸</button>
+    <button class="seal on" data-cat="temple" data-icon="temple" aria-label="Temples"><span class="lb">Temples</span></button>
+    <button class="seal on" data-cat="shrine" data-icon="shrine" aria-label="Shrines"><span class="lb">Shrines</span></button>
+    <button class="seal on" data-cat="ryokan" data-icon="ryokan" aria-label="Inns"><span class="lb">Inns</span></button>
+    <button class="seal on" data-cat="garden" data-icon="garden" aria-label="Gardens"><span class="lb">Gardens</span></button>
+    <button class="seal on" data-cat="architecture" data-icon="architecture" aria-label="Buildings"><span class="lb">Buildings</span></button>
+    <button class="seal on" data-cat="onsen" data-icon="onsen" aria-label="Hot springs"><span class="lb">Hot springs</span></button>
+    <button class="seal on" data-cat="technology" data-icon="technology" aria-label="Tech"><span class="lb">Tech</span></button>
+    <button class="seal on" data-cat="art" data-icon="art" aria-label="Art"><span class="lb">Art</span></button>
   </nav>
 
-  <div id="region">
-    <div class="kanji">中部・関西</div>
-    <div class="yomi">ちゅうぶ・かんさい</div>
-    <div class="en">Central Japan</div>
-  </div>
+  <div id="region"><div class="en">Central Japan</div></div>
 
   <aside id="card" aria-hidden="true" aria-label="Place details">
     <div class="grab"></div>
     <button class="x" aria-label="Close">×</button>
     <div class="scrollbox">
-      <div class="head"><span class="cseal">寺</span><span class="cname">Temple</span><span class="status">定番 Core</span></div>
-      <h2 class="k"></h2>
-      <div class="y"></div>
-      <div class="en"></div>
+      <div class="head"><span class="cseal"></span><span class="cname">Temple</span><span class="status">Must-see</span></div>
+      <h2 class="title"></h2>
+      <div class="jp" lang="ja"></div>
       <div class="reg"></div>
       <p class="why"></p>
       <dl class="rows"></dl>
@@ -92,11 +88,10 @@
 
   <div id="whoPick" class="overlay" hidden>
     <div class="sheet">
-      <div class="q">どなたですか</div>
-      <div class="qe">Who is using this phone?</div>
+      <div class="q">Who is using this phone?</div>
       <div class="pair">
-        <button class="who-btn" data-who="cade"><span class="big">ケ</span><b>Cade</b><i>ケイド</i></button>
-        <button class="who-btn" data-who="casey"><span class="big">シ</span><b>Casey</b><i>ケイシー</i></button>
+        <button class="who-btn" data-who="cade"><span class="big" data-icon="person"></span><b>Cade</b></button>
+        <button class="who-btn" data-who="casey"><span class="big" data-icon="person"></span><b>Casey</b></button>
       </div>
     </div>
   </div>
@@ -108,7 +103,7 @@
   <div id="tip" role="tooltip" hidden></div>
 
   <div id="fade"></div>
-  <div id="loading"><div class="brush"></div><div class="txt">墨を磨る<br><span>grinding the ink</span></div></div>
+  <div id="loading"><div class="brush"></div><div class="txt">Grinding the ink…<br><span>Loading the map</span></div></div>
 </div>
 <script type="module" src="js/app.js"></script>
 <script>

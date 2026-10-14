@@ -19,8 +19,8 @@
   text-align: left;
 }
 #tip.on { opacity: 1; }
-#tip .tk { font-family: var(--kanji, 'Yuji Syuku', 'Noto Serif CJK JP', serif); font-size: 20px; line-height: 1.25; letter-spacing: .03em; }
-#tip .tl { font-family: var(--mincho, 'Shippori Mincho', 'Noto Serif CJK JP', serif); font-size: 13px; line-height: 1.35; margin-top: 2px; overflow-wrap: break-word; }
+#tip .tk { font-family: var(--mincho, 'Shippori Mincho', 'Noto Serif CJK JP', serif); font-weight: 500; font-size: 15px; line-height: 1.3; letter-spacing: .02em; }
+#tip .tl { font-family: var(--mincho, 'Shippori Mincho', 'Noto Serif CJK JP', serif); font-size: 13px; line-height: 1.35; margin-top: 2px; color: var(--grey-d, #5B5952); overflow-wrap: break-word; }
 
 /* safe-area probe (read by tips.js) */
 .tip-probe {

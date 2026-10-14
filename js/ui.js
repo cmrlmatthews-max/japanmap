@@ -1,5 +1,6 @@
 // DOM UI: saved choices, region crests, category filter, info card, "who is this?".
 import { CATS, CAT_ORDER } from './pins.js';
+import { iconSVG } from './icons.js';
 
 export const REGION_INFO = {
   overview: { kanji: '中部・関西', yomi: 'ちゅうぶ・かんさい', en: 'Central Japan' },
@@ -10,9 +11,10 @@ export const REGION_INFO = {
   nara:     { kanji: '奈良', yomi: 'なら',       en: 'Nara' },
   osaka:    { kanji: '大阪', yomi: 'おおさか',   en: 'Osaka' },
 };
+// REGION_INFO keeps the Japanese (kanji, yomi) as data only. The UI renders the English name (en) and nothing else.
 // the card docks on the right on iPad/desktop and on iPhone landscape; otherwise it is a bottom sheet
 export const DOCK_MQ = '(min-width: 900px), (max-height: 520px) and (orientation: landscape)';
-const WHO = { cade: { initial: 'ケ', name: 'Cade' }, casey: { initial: 'シ', name: 'Casey' } };
+const WHO = { cade: { name: 'Cade' }, casey: { name: 'Casey' } };
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -64,8 +66,20 @@ function normSources(src) {
   return out;
 }
 
+// pictograms: every [data-icon] gets its drawn icon. A seal button gets a vermilion stamp box that holds the icon, with the word under it.
+export function hydrateIcons(root = document) {
+  root.querySelectorAll('[data-icon]').forEach((el) => {
+    if (el.dataset.iconDone) return;
+    el.dataset.iconDone = '1';
+    const svg = iconSVG(el.dataset.icon, { size: 24 });
+    if (el.matches('button.seal')) { const st = document.createElement('span'); st.className = 'stamp'; st.setAttribute('aria-hidden', 'true'); st.innerHTML = svg; el.prepend(st); }
+    else el.innerHTML = svg;
+  });
+}
+
 export function initUI(cb) {
   Store.load();
+  hydrateIcons();
   const ui = { Store, cardPlace: null, cardOpen: false };
   const body = document.body;
 
@@ -74,7 +88,7 @@ export function initUI(cb) {
   ui.setActiveRegion = (id) => {
     crests.forEach(b => b.classList.toggle('active', b.dataset.region === id));
     const r = REGION_INFO[id]; if (!r) return;
-    $('#region .kanji').textContent = r.kanji; $('#region .yomi').textContent = r.yomi; $('#region .en').textContent = r.en;
+    $('#region .en').textContent = r.en;
   };
   crests.forEach(b => b.addEventListener('click', () => cb.onRegion(b.dataset.region)));
 
@@ -90,7 +104,7 @@ export function initUI(cb) {
   const refreshWho = () => {
     const w = Store.who;
     whoBtn.hidden = !w;
-    if (w) { $('span', whoBtn).textContent = WHO[w].initial; whoBtn.title = `${WHO[w].name} — tap to switch`; whoBtn.setAttribute('aria-label', whoBtn.title); }
+    if (w) { $('.who-name', whoBtn).textContent = WHO[w].name; whoBtn.dataset.tip = `${WHO[w].name} · Tap to switch person`; whoBtn.setAttribute('aria-label', `${WHO[w].name}. Tap to switch person`); }
     $$('.who-btn', whoPick).forEach(b => b.classList.toggle('cur', b.dataset.who === w));
   };
   ui.showWho = () => { refreshWho(); whoPick.hidden = false; requestAnimationFrame(() => whoPick.classList.add('open')); };
@@ -106,25 +120,24 @@ export function initUI(cb) {
   // ----- info card -----
   const card = $('#card'), box = $('.scrollbox', card);
   const fillCard = (p) => {
-    const cat = CATS[p.category] || { kanji: '?', en: p.category };
-    $('.cseal', card).textContent = cat.kanji;
+    const cat = CATS[p.category] || { en: cap(p.category || '') };
+    const cs = $('.cseal', card); cs.innerHTML = iconSVG(p.category, { size: 22 }); cs.dataset.cat = p.category || '';
     $('.cname', card).textContent = cat.en;
-    const st = $('.status', card);
-    st.textContent = p.status === 'core' ? '定番 Core' : '提案 Suggestion';
-    st.className = 'status ' + (p.status === 'core' ? 'core' : 'sug');
-    $('.k', card).textContent = p.kanji || '';
-    $('.y', card).textContent = p.yomi || '';
-    $('.en', card).textContent = p.name || '';
+    const st = $('.status', card), core = p.status === 'core';
+    st.textContent = core ? 'Must-see' : 'Suggestion'; st.dataset.status = core ? 'core' : 'sug';
+    st.className = 'status ' + (core ? 'core' : 'sug');
+    $('.title', card).textContent = p.name || '';
+    const jp = $('.jp', card); jp.textContent = p.kanji || ''; jp.hidden = !p.kanji;   // the only Japanese in the UI
     $('.reg', card).textContent = REGION_INFO[p.region]?.en || cap(p.region || '');
     $('.why', card).textContent = p.why || '';
     const rows = $('.rows', card); rows.textContent = '';
-    const add = (jp, en, v) => { v = fmtVal(v); if (!v) return; const d = document.createElement('div'); d.className = 'row';
-      d.innerHTML = '<dt><span class="jp"></span><span class="en"></span></dt><dd></dd>';
-      d.querySelector('.jp').textContent = jp; d.querySelector('.en').textContent = en; d.querySelector('dd').textContent = v; rows.appendChild(d); };
-    add('建築家', 'Architect', p.architect);
-    add('時', 'Best time', p.best);
-    add('予約', 'Booking', p.booking);
-    if ((p.category === 'ryokan' || p.category === 'onsen') && p.tier) add('価格', 'Price tier', cap(p.tier));
+    const add = (label, v) => { v = fmtVal(v); if (!v) return; const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = '<dt></dt><dd></dd>';
+      d.querySelector('dt').textContent = label; d.querySelector('dd').textContent = v; rows.appendChild(d); };
+    add('Architect', p.architect);
+    add('Best time', p.best);
+    add('Booking', p.booking);
+    if ((p.category === 'ryokan' || p.category === 'onsen') && p.tier) add('Price tier', cap(p.tier));
     rows.hidden = !rows.children.length;
     const c = Store.choice(p.id);
     const addB = $('.btn.add', card), passB = $('.btn.pass', card);

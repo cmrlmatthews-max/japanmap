@@ -1,4 +1,4 @@
-// Symbol tooltips: the English meaning of a kanji seal, crest or mark.
+// Symbol tooltips: plain-English help for a stamp, crest or mark (one bold line, one optional detail line).
 // Mouse: hover 250 ms. Touch / pen: long press 450 ms (the click that follows is swallowed). Keyboard: :focus-visible.
 // One #tip element, positioned beside the target. Works for elements added at any time (event delegation + MutationObserver).
 
@@ -10,44 +10,49 @@ const SEL = [
 const HOVER_MS = 250, SWITCH_MS = 90, LONG_MS = 450, SLOP = 8, LINGER_MS = 1400, SUPPRESS_MS = 700;
 const GAP = 10, MARGIN = 8, FADE_MS = 140;
 
-// ---- text table: kanji, romaji, English ----
+// ---- text table: a bold line and one optional detail line, plain English ----
 const LAYERS = {
-  route:  ['路', 'ro',  'Route — the trip by day'],
-  mist:   ['霧', 'kiri', 'Mist'],
-  camera: ['動', 'dō',  'Camera moves (off = Still camera)'],
-  sound:  ['音', 'oto', 'Sound'],
+  route:  ['Route',  'Show the trip by day'],
+  mist:   ['Mist',   'Soft clouds over the mountains'],
+  camera: ['Motion', 'Camera flights on or off (off = still camera)'],
+  sound:  ['Sound',  'Coming soon'],
 };
 const CATS = {
-  temple:       ['寺', 'tera',    'Temples'],
-  shrine:       ['社', 'yashiro', 'Shrines'],
-  ryokan:       ['宿', 'yado',    'Ryokan (inns)'],
-  garden:       ['庭', 'niwa',    'Gardens'],
-  architecture: ['建', 'ken',     'Architecture'],
-  onsen:        ['湯', 'yu',      'Onsen (hot springs)'],
-  technology:   ['技', 'waza',    'Technology'],
-  art:          ['芸', 'gei',     'Art'],
+  temple:       'Temples',
+  shrine:       'Shrines',
+  ryokan:       'Inns',
+  garden:       'Gardens',
+  architecture: 'Buildings',
+  onsen:        'Hot springs',
+  technology:   'Tech',
+  art:          'Art',
 };
-const CAT_BY_KANJI = Object.fromEntries(Object.values(CATS).map((c) => [c[0], c]));
+// the card's category seal: what the word means
+const CAT_HELP = {
+  temple:       ['Temple', 'A Buddhist temple'],
+  shrine:       ['Shrine', 'A Shinto shrine'],
+  ryokan:       ['Inn', 'A traditional Japanese inn'],
+  garden:       ['Garden', 'A garden to stroll through'],
+  architecture: ['Architecture', 'A building worth studying'],
+  onsen:        ['Hot spring', 'A natural hot-spring bath'],
+  technology:   ['Technology', 'Design, tech and science'],
+  art:          ['Art', 'A museum or art space'],
+};
 const REGIONS = {
-  overview: ['全',   'zen',    'Overview — all of central Japan'],
-  tokyo:    ['東京', 'Tōkyō',  'Tokyo'],
-  kyoto:    ['京都', 'Kyōto',  'Kyoto'],
-  nara:     ['奈良', 'Nara',   'Nara'],
-  osaka:    ['大阪', 'Ōsaka',  'Osaka'],
-  hakone:   ['箱根', 'Hakone', 'Hakone'],
-  fuji:     ['富士', 'Fuji',   'Mount Fuji area'],
-};
-const WHO = {
-  'ケ': ['ケイド',   'Keido',   'Cade'],
-  'シ': ['ケイシー', 'Keishī',  'Casey'],
+  overview: { k: 'All', l: 'Show all of central Japan' },
+  tokyo:    { k: 'Fly to Tokyo' },
+  kyoto:    { k: 'Fly to Kyoto' },
+  nara:     { k: 'Fly to Nara' },
+  osaka:    { k: 'Fly to Osaka' },
+  hakone:   { k: 'Fly to Hakone' },
+  fuji:     { k: 'Fly to Mount Fuji' },
 };
 const STATUS = {
-  '定番': ['定番', 'teiban', 'Core place'],
-  '提案': ['提案', 'teian',  'Suggestion'],
+  core: { k: 'Must-see',   l: 'A classic sight' },
+  sug:  { k: 'Suggestion', l: 'Worth a look if there is time' },
 };
-const TITLE = ['日本の旅', 'Nihon no tabi', 'Journey Through Japan'];
-
-const line = (t) => ({ k: t[0], l: `${t[1]} · ${t[2]}` });
+// the one place a tooltip may show Japanese: it explains the brush artwork
+const TITLE = { k: '日本の旅 (Nihon no tabi)', l: '\u2018Journey Through Japan\u2019 in brush calligraphy' };
 
 function describe(el) {
   const dt = el.getAttribute('data-tip');
@@ -55,23 +60,15 @@ function describe(el) {
     const parts = dt.split(' · ').map((s) => s.trim());
     return { k: parts[0], l: parts.slice(1).join(' · ') };
   }
-  if (el.matches('#seals .seal[data-layer]')) { const t = LAYERS[el.dataset.layer]; return t && line(t); }
+  if (el.matches('#seals .seal[data-layer]')) { const t = LAYERS[el.dataset.layer]; return t && { k: t[0], l: t[1] }; }
   if (el.matches('#filters .seal[data-cat]')) {
-    const t = CATS[el.dataset.cat]; if (!t) return null;
-    const d = line(t); d.l += el.classList.contains('on') ? ' — shown' : ' — hidden'; return d;
+    const n = CATS[el.dataset.cat]; if (!n) return null;
+    return { k: n, l: el.classList.contains('on') ? 'Tap to hide' : 'Tap to show' };
   }
-  if (el.matches('#crests .crest[data-region]')) { const t = REGIONS[el.dataset.region]; return t && line(t); }
-  if (el.matches('#who')) {
-    const t = WHO[(el.textContent || '').trim()]; if (!t) return null;
-    return { k: t[0], l: `${t[1]} · ${t[2]} — tap to switch` };
-  }
-  if (el.matches('#card .cseal')) { const t = CAT_BY_KANJI[(el.textContent || '').trim()]; return t && line(t); }
-  if (el.matches('#card .status')) {
-    const txt = el.textContent || '';
-    const key = Object.keys(STATUS).find((k) => txt.includes(k));
-    return key ? line(STATUS[key]) : null;
-  }
-  if (el.matches('#title img')) return line(TITLE);
+  if (el.matches('#crests .crest[data-region]')) { const t = REGIONS[el.dataset.region]; return t && { k: t.k, l: t.l || '' }; }
+  if (el.matches('#card .cseal')) { const t = CAT_HELP[el.dataset.cat]; return t && { k: t[0], l: t[1] }; }
+  if (el.matches('#card .status')) { const t = STATUS[el.dataset.status]; return t && { k: t.k, l: t.l }; }
+  if (el.matches('#title img')) return { ...TITLE };
   return null;
 }
 

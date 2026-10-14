@@ -1,20 +1,21 @@
 // Seal pins: hanko-style sprites on the map, their HTML labels, and tap picking.
 import * as THREE from 'three';
+import { drawIcon } from './icons.js';
 
+// en = singular word for the card and the itinerary; label = plural word on the category filter; kanji is kept as data only (no longer rendered)
 export const CATS = {
-  temple:       { kanji: '寺', en: 'Temple' },
-  shrine:       { kanji: '社', en: 'Shrine' },
-  ryokan:       { kanji: '宿', en: 'Ryokan' },
-  garden:       { kanji: '庭', en: 'Garden' },
-  architecture: { kanji: '建', en: 'Architecture' },
-  onsen:        { kanji: '湯', en: 'Onsen' },
-  technology:   { kanji: '技', en: 'Technology' },
-  art:          { kanji: '芸', en: 'Art' },
+  temple:       { kanji: '寺', en: 'Temple',       label: 'Temples' },
+  shrine:       { kanji: '社', en: 'Shrine',       label: 'Shrines' },
+  ryokan:       { kanji: '宿', en: 'Inn',          label: 'Inns' },
+  garden:       { kanji: '庭', en: 'Garden',       label: 'Gardens' },
+  architecture: { kanji: '建', en: 'Architecture', label: 'Buildings' },
+  onsen:        { kanji: '湯', en: 'Hot spring',   label: 'Hot springs' },
+  technology:   { kanji: '技', en: 'Technology',   label: 'Tech' },
+  art:          { kanji: '芸', en: 'Art',          label: 'Art' },
 };
 export const CAT_ORDER = ['temple', 'shrine', 'ryokan', 'garden', 'architecture', 'onsen', 'technology', 'art'];
 
 const VERM = '#C8341E', PAPER = '#F5EFE0';
-const KANJI_FONT = "'Yuji Syuku', 'Noto Serif CJK JP', 'Hiragino Mincho ProN', serif";
 export const PIN_PX = 30;                // on-screen seal size, CSS px
 const STEM_PX = 12;                      // ink stem length, CSS px
 const PICK_PX = 24;
@@ -27,14 +28,12 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) >>>
 function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
 
 // ---------- seal textures (drawn live) ----------
+// the seals hold drawn icons now; only the label font needs to be ready before the labels are measured
 export async function loadSealFonts() {
-  const chars = Object.values(CATS).map(c => c.kanji).join('');
   const timeout = new Promise(res => setTimeout(res, 3000));
   try {
     await Promise.race([Promise.all([
-      document.fonts.load("96px 'Yuji Syuku'", chars),
-      document.fonts.load("16px 'Yuji Syuku'", '浅草寺'),
-      document.fonts.load("12px 'Shippori Mincho'", 'あ'),
+      document.fonts.load("500 12px 'Shippori Mincho'", 'Senso-ji Kiyomizu'),
     ]), timeout]);
   } catch (e) { /* fall back to serif */ }
 }
@@ -54,17 +53,15 @@ function roughPath(ctx, cx, cy, half, rand, wobble) {
   ctx.closePath();
 }
 
-export function drawSeal(kanji, solid, seed, size = 128) {
+export function drawSeal(cat, solid, seed, size = 128) {
   const cv = document.createElement('canvas'); cv.width = cv.height = size;
   const ctx = cv.getContext('2d'), rand = rng(seed), c = size / 2, half = size * 0.43;
   const wob = 0.022;
-  const placeKanji = (color, px) => {
+  // the category pictogram, pressed into the stamp with a tiny hand-set offset
+  const placeIcon = (color, px) => {
     ctx.save();
-    ctx.fillStyle = color; ctx.font = `${px}px ${KANJI_FONT}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    const m = ctx.measureText(kanji);
-    const asc = m.actualBoundingBoxAscent || px * 0.8, desc = m.actualBoundingBoxDescent || px * 0.1;
-    ctx.translate(c + (rand() - 0.5) * 1.2, c + (asc - desc) / 2 + (rand() - 0.5) * 1.2); ctx.rotate((rand() - 0.5) * 0.05);
-    ctx.fillText(kanji, 0, 0);
+    ctx.translate((rand() - 0.5) * 1.2, (rand() - 0.5) * 1.2);
+    drawIcon(ctx, cat, c, c, px, color);
     ctx.restore();
   };
   if (solid) {
@@ -72,12 +69,12 @@ export function drawSeal(kanji, solid, seed, size = 128) {
     // inner hairline border, as on many hanko
     ctx.strokeStyle = PAPER; ctx.globalAlpha = 0.55; ctx.lineWidth = 2.2;
     roughPath(ctx, c, c, half * 0.86, rand, wob * 0.8); ctx.stroke(); ctx.globalAlpha = 1;
-    placeKanji(PAPER, size * 0.5);
+    placeIcon(PAPER, size * 0.56);
   } else {
-    ctx.fillStyle = 'rgba(245,239,224,0.38)'; roughPath(ctx, c, c, half, rand, wob); ctx.fill();   // thin wash so the kanji reads over dark ground
+    ctx.fillStyle = 'rgba(245,239,224,0.38)'; roughPath(ctx, c, c, half, rand, wob); ctx.fill();   // thin wash so the icon reads over dark ground
     ctx.strokeStyle = VERM; ctx.lineWidth = size * 0.055; ctx.lineJoin = 'round';
     roughPath(ctx, c, c, half - size * 0.03, rand, wob); ctx.stroke();
-    placeKanji(VERM, size * 0.5);
+    placeIcon(VERM, size * 0.56);
   }
   // worn-ink texture: tiny flecks, a few nicks on the edge, slight mottling
   ctx.globalCompositeOperation = 'destination-out';
@@ -119,7 +116,7 @@ export class Pins {
     this.labelRatio = 0;
     const ink = new THREE.Color('#2C2C2A');
     for (const cat of CAT_ORDER) for (const solid of [true, false]) {
-      const t = new THREE.CanvasTexture(drawSeal(CATS[cat].kanji, solid, hashStr(cat) + (solid ? 1 : 7)));
+      const t = new THREE.CanvasTexture(drawSeal(cat, solid, hashStr(cat) + (solid ? 1 : 7)));
       t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
       this.textures[cat + (solid ? ':s' : ':o')] = t;
     }
@@ -135,8 +132,8 @@ export class Pins {
       line.renderOrder = 19; line.visible = false; line.frustumCulled = false;
       this.group.add(line, sprite);
       const el = document.createElement('div'); el.className = 'plabel';
-      el.innerHTML = `<span class="k"></span><span class="y"></span>`;
-      el.firstChild.textContent = p.kanji; el.lastChild.textContent = p.yomi || '';
+      el.innerHTML = `<span class="n"></span>`;
+      el.firstChild.textContent = p.short || p.name || p.id;      // English only, one line
       this.host.appendChild(el);
       const pin = { place: p, id: p.id, ground: new THREE.Vector3(w.x, ground, w.z), sprite, mat, line, el,
                     alpha: 0, pickable: false, sx: 0, sy: 0, lw: 0, lh: 0, pulse: -1, labelOn: false, scaleK: 1, state: 'o' };

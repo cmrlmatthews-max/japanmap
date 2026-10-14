@@ -184,13 +184,15 @@ const regionExists = (id) => id === 'overview' || !!REGIONS[id];
 
 // ---------- projected labels: landmarks and region names ----------
 const marks = [];                                           // { el, pos, kind, key }
-function addMark(kind, kanji, yomi, pos, key, side = 'top') {
+function addMark(kind, text, pos, key, side = 'top') {
   const el = document.createElement('div');
   el.className = (kind === 'region' ? 'rlabel' : 'landmark') + ' side-' + side;
-  el.innerHTML = `<span class="k">${kanji}</span><span class="y">${yomi}</span>` + (kind === 'region' ? '<b class="dot"></b>' : '');
+  el.innerHTML = '<span class="t"></span>' + (kind === 'region' ? '<b class="dot"></b>' : '');
+  el.firstChild.textContent = text;                          // English lettering only
   scrollEl.appendChild(el);
   marks.push({ el, pos, kind, key, side, w: 0, h: 0, on: false });
 }
+if (document.fonts) { const remeasure = () => marks.forEach(m => { m.w = 0; }); document.fonts.ready.then(remeasure); document.fonts.addEventListener?.('loadingdone', remeasure); }
 // screen rects of fixed UI (title, seals, crests, caps...) that map labels should keep clear of
 let uiRects = [], pinBlockers = [], uiRectsAt = -1e9;
 function refreshUiRects(force) {
@@ -217,7 +219,8 @@ function updateMarks(dist, w, h) {
   const placed = [], obstacles = [], ui_ = refreshUiRects();
   const order = marks.slice().sort((a, b) => (a.kind === 'region') - (b.kind === 'region'));
   for (const m of order) {
-    const a = m.kind === 'region' ? regFade : landFade;
+    let a = m.kind === 'region' ? regFade : landFade;
+    if (m.key === 'fuji-peak') a *= 1 - regFade;           // the region label already says "Mount Fuji": the peak label fades out as it fades in
     let show = a > 0.02;
     let x = 0, y = 0;
     if (show) {
@@ -363,12 +366,12 @@ async function init() {
 
   const landmark = (lon, lat) => { const p = lonLatToWorld(lon, lat); p.y = heightAtWorld(p.x, p.z) + 0.6; return p; };
   const fuji = landmark(138.7274, 35.3606), ashi = landmark(139.005, 35.205), owak = landmark(139.0265, 35.2423);
-  addMark('landmark', '富士山', 'ふじさん', fuji);
-  addMark('landmark', '芦ノ湖', 'あしのこ', ashi);
-  addMark('landmark', '大涌谷', 'おおわくだに', owak);
+  addMark('landmark', 'Mount Fuji', fuji, 'fuji-peak');
+  addMark('landmark', 'Lake Ashi', ashi, 'lake-ashi');
+  addMark('landmark', 'Owakudani', owak, 'owakudani');
   for (const id of ['tokyo', 'kyoto', 'osaka', 'fuji', 'hakone', 'nara']) {
     const r = REGIONS[id], p = groundTarget(r.lon, r.lat); p.y += 1.2;
-    addMark('region', REGION_INFO[id].kanji, REGION_INFO[id].yomi, p, id, REGIONS[id].side);
+    addMark('region', REGION_INFO[id].en, p, id, REGIONS[id].side);
   }
 
   // mist bands around the Fuji skirt and the Hakone caldera
@@ -432,4 +435,4 @@ window.__map = {
   get route() { return route; }, get trip() { return trip; },
   setWho(w) { Store.setWho(w); ui.setActiveRegion(state.region); refreshPins(); },
 };
-init().catch(err => { console.error(err); $('#loading .txt').innerHTML = '読み込み失敗<br><span>' + err.message + '</span>'; });
+init().catch(err => { console.error(err); $('#loading .txt').innerHTML = 'Could not load the map<br><span></span>'; $('#loading .txt span').textContent = err.message; });

@@ -2,6 +2,7 @@
  {
   "id": "senso-ji",
   "name": "Senso-ji",
+  "short": "Senso-ji",
   "kanji": "浅草寺",
   "yomi": "せんそうじ",
   "category": "temple",
@@ -23,6 +24,7 @@
  {
   "id": "meiji-jingu",
   "name": "Meiji Jingu",
+  "short": "Meiji Jingu",
   "kanji": "明治神宮",
   "yomi": "めいじじんぐう",
   "category": "shrine",
@@ -44,6 +46,7 @@
  {
   "id": "tokyo-national-museum",
   "name": "Tokyo National Museum",
+  "short": "Tokyo Nat. Museum",
   "kanji": "東京国立博物館",
   "yomi": "とうきょうこくりつはくぶつかん",
   "category": "art",
@@ -65,6 +68,7 @@
  {
   "id": "mori-art-museum",
   "name": "Mori Art Museum",
+  "short": "Mori Art Museum",
   "kanji": "森美術館",
   "yomi": "もりびじゅつかん",
   "category": "art",
@@ -87,6 +91,7 @@
  {
   "id": "teamlab-borderless",
   "name": "teamLab Borderless (Azabudai Hills)",
+  "short": "teamLab Borderless",
   "kanji": "チームラボボーダレス",
   "yomi": "チームラボボーダレス",
   "category": "art",
@@ -109,6 +114,7 @@
  {
   "id": "nezu-museum",
   "name": "Nezu Museum",
+  "short": "Nezu Museum",
   "kanji": "根津美術館",
   "yomi": "ねづびじゅつかん",
   "category": "art",
@@ -131,6 +137,7 @@
  {
   "id": "tokyo-station",
   "name": "Tokyo Station",
+  "short": "Tokyo Station",
   "kanji": "東京駅",
   "yomi": "とうきょうえき",
   "category": "architecture",
@@ -152,6 +159,7 @@
  {
   "id": "yoyogi-national-gymnasium",
   "name": "Yoyogi National Gymnasium",
+  "short": "Yoyogi Gymnasium",
   "kanji": "国立代々木競技場",
   "yomi": "こくりつよよぎきょうぎじょう",
   "category": "architecture",
@@ -174,6 +182,7 @@
  {
   "id": "akihabara-electric-town",
   "name": "Akihabara Electric Town",
+  "short": "Akihabara",
   "kanji": "秋葉原電気街",
   "yomi": "あきはばらでんきがい",
   "category": "technology",
@@ -194,6 +203,7 @@
  {
   "id": "miraikan",
   "name": "Miraikan (National Museum of Emerging Science and Innovation)",
+  "short": "Miraikan",
   "kanji": "日本科学未来館",
   "yomi": "にほんかがくみらいかん",
   "category": "technology",
@@ -216,6 +226,7 @@
  {
   "id": "shinjuku-gyoen",
   "name": "Shinjuku Gyoen",
+  "short": "Shinjuku Gyoen",
   "kanji": "新宿御苑",
   "yomi": "しんじゅくぎょえん",
   "category": "garden",
@@ -238,6 +249,7 @@
  {
   "id": "nezu-shrine",
   "name": "Nezu Shrine",
+  "short": "Nezu Shrine",
   "kanji": "根津神社",
   "yomi": "ねづじんじゃ",
   "category": "shrine",
@@ -259,6 +271,7 @@
  {
   "id": "omotesando-hills",
   "name": "Omotesando Hills",
+  "short": "Omotesando Hills",
   "kanji": "表参道ヒルズ",
   "yomi": "おもてさんどうヒルズ",
   "category": "architecture",
@@ -280,6 +293,7 @@
  {
   "id": "christian-dior-building-omotesando",
   "name": "Dior Omotesando",
+  "short": "Dior Omotesando",
   "kanji": "ディオール表参道",
   "yomi": "ディオールおもてさんどう",
   "category": "architecture",
@@ -302,6 +316,7 @@
  {
   "id": "ginza-six",
   "name": "Ginza Six",
+  "short": "Ginza Six",
   "kanji": "銀座シックス",
   "yomi": "ぎんざシックス",
   "category": "architecture",
@@ -322,6 +337,7 @@
  {
   "id": "suntory-museum-of-art",
   "name": "Suntory Museum of Art (Tokyo Midtown)",
+  "short": "Suntory Museum",
   "kanji": "サントリー美術館",
   "yomi": "サントリーびじゅつかん",
   "category": "architecture",
@@ -343,6 +359,7 @@
  {
   "id": "sony-park",
   "name": "Ginza Sony Park",
+  "short": "Ginza Sony Park",
   "kanji": "銀座ソニーパーク",
   "yomi": "ぎんざソニーパーク",
   "category": "technology",
@@ -365,6 +382,7 @@
  {
   "id": "koishikawa-korakuen",
   "name": "Koishikawa Korakuen",
+  "short": "Koishikawa Korakuen",
   "kanji": "小石川後楽園",
   "yomi": "こいしかわこうらくえん",
   "category": "garden",
@@ -387,6 +405,7 @@
  {
   "id": "hamarikyu-gardens",
   "name": "Hamarikyu Gardens",
+  "short": "Hamarikyu Gardens",
   "kanji": "浜離宮恩賜庭園",
   "yomi": "はまりきゅうおんしていえん",
   "category": "garden",
@@ -409,6 +428,7 @@
  {
   "id": "hoshinoya-tokyo",
   "name": "Hoshinoya Tokyo",
+  "short": "Hoshinoya Tokyo",
   "kanji": "星のや東京",
   "yomi": "ほしのやとうきょう",
   "category": "ryokan",
@@ -431,6 +451,7 @@
  {
   "id": "thermae-yu",
   "name": "Thermae-Yu (Shinjuku)",
+  "short": "Thermae-Yu",
   "kanji": "テルマー湯",
   "yomi": "テルマーゆ",
   "category": "onsen",
@@ -452,6 +473,7 @@
  {
   "id": "japan-national-stadium",
   "name": "Japan National Stadium",
+  "short": "National Stadium",
   "kanji": "国立競技場",
   "yomi": "こくりつきょうぎじょう",
   "category": "architecture",
@@ -472,6 +494,7 @@
  {
   "id": "21-21-design-sight",
   "name": "21_21 Design Sight",
+  "short": "21_21 Design Sight",
   "kanji": "21_21 DESIGN SIGHT",
   "yomi": "トゥーワントゥーワンデザインサイト",
   "category": "architecture",
@@ -493,6 +516,7 @@
  {
   "id": "rikugien",
   "name": "Rikugien",
+  "short": "Rikugien",
   "kanji": "六義園",
   "yomi": "りくぎえん",
   "category": "garden",
@@ -515,6 +539,7 @@
  {
   "id": "tokyo-international-forum",
   "name": "Tokyo International Forum",
+  "short": "Intl. Forum",
   "kanji": "東京国際フォーラム",
   "yomi": "とうきょうこくさいフォーラム",
   "category": "architecture",
@@ -536,6 +561,7 @@
  {
   "id": "hakone-shrine",
   "name": "Hakone Shrine",
+  "short": "Hakone Shrine",
   "kanji": "箱根神社",
   "yomi": "はこねじんじゃ",
   "category": "shrine",
@@ -558,6 +584,7 @@
  {
   "id": "hakone-open-air-museum",
   "name": "Hakone Open-Air Museum",
+  "short": "Open-Air Museum",
   "kanji": "彫刻の森美術館",
   "yomi": "ちょうこくのもりびじゅつかん",
   "category": "art",
@@ -580,6 +607,7 @@
  {
   "id": "owakudani",
   "name": "Owakudani",
+  "short": "Owakudani",
   "kanji": "大涌谷",
   "yomi": "おおわくだに",
   "category": "onsen",
@@ -602,6 +630,7 @@
  {
   "id": "hakone-yumoto-onsen",
   "name": "Hakone-Yumoto Onsen",
+  "short": "Hakone-Yumoto Onsen",
   "kanji": "箱根湯本温泉",
   "yomi": "はこねゆもとおんせん",
   "category": "onsen",
@@ -623,6 +652,7 @@
  {
   "id": "gora-kadan",
   "name": "Gora Kadan",
+  "short": "Gora Kadan",
   "kanji": "強羅花壇",
   "yomi": "ごうらかだん",
   "category": "ryokan",
@@ -645,6 +675,7 @@
  {
   "id": "hakone-venetian-glass-museum",
   "name": "Hakone Venetian Glass Museum",
+  "short": "Glass Museum",
   "kanji": "箱根ガラスの森美術館",
   "yomi": "はこねガラスのもりびじゅつかん",
   "category": "art",
@@ -666,6 +697,7 @@
  {
   "id": "pola-museum-of-art",
   "name": "POLA Museum of Art",
+  "short": "POLA Museum of Art",
   "kanji": "ポーラ美術館",
   "yomi": "ポーラびじゅつかん",
   "category": "art",
@@ -688,6 +720,7 @@
  {
   "id": "hakone-gora-park",
   "name": "Hakone Gora Park",
+  "short": "Hakone Gora Park",
   "kanji": "箱根強羅公園",
   "yomi": "はこねごうらこうえん",
   "category": "garden",
@@ -710,6 +743,7 @@
  {
   "id": "arakurayama-sengen-park",
   "name": "Arakurayama Sengen Park (Chureito Pagoda)",
+  "short": "Chureito Pagoda",
   "kanji": "新倉山浅間公園",
   "yomi": "あらくらやませんげんこうえん",
   "category": "shrine",
@@ -732,6 +766,7 @@
  {
   "id": "oshino-hakkai",
   "name": "Oshino Hakkai",
+  "short": "Oshino Hakkai",
   "kanji": "忍野八海",
   "yomi": "おしのはっかい",
   "category": "garden",
@@ -754,6 +789,7 @@
  {
   "id": "kubota-itchiku-art-museum",
   "name": "Kubota Itchiku Art Museum",
+  "short": "Kubota Museum",
   "kanji": "久保田一竹美術館",
   "yomi": "くぼたいっちくびじゅつかん",
   "category": "art",
@@ -776,6 +812,7 @@
  {
   "id": "hoshinoya-fuji",
   "name": "Hoshinoya Fuji",
+  "short": "Hoshinoya Fuji",
   "kanji": "星のや富士",
   "yomi": "ほしのやふじ",
   "category": "ryokan",
@@ -798,6 +835,7 @@
  {
   "id": "kawaguchiko-momiji-corridor",
   "name": "Kawaguchiko Momiji Corridor",
+  "short": "Maple Corridor",
   "kanji": "河口湖もみじ回廊",
   "yomi": "かわぐちこもみじかいろう",
   "category": "garden",
@@ -820,6 +858,7 @@
  {
   "id": "kiyomizu-dera",
   "name": "Kiyomizu-dera",
+  "short": "Kiyomizu-dera",
   "kanji": "清水寺",
   "yomi": "きよみずでら",
   "category": "temple",
@@ -841,6 +880,7 @@
  {
   "id": "fushimi-inari-taisha",
   "name": "Fushimi Inari Taisha",
+  "short": "Fushimi Inari Taisha",
   "kanji": "伏見稲荷大社",
   "yomi": "ふしみいなりたいしゃ",
   "category": "shrine",
@@ -861,6 +901,7 @@
  {
   "id": "kinkaku-ji",
   "name": "Kinkaku-ji (Golden Pavilion)",
+  "short": "Golden Pavilion",
   "kanji": "金閣寺",
   "yomi": "きんかくじ",
   "category": "temple",
@@ -881,6 +922,7 @@
  {
   "id": "ginkaku-ji",
   "name": "Ginkaku-ji (Silver Pavilion)",
+  "short": "Silver Pavilion",
   "kanji": "銀閣寺",
   "yomi": "ぎんかくじ",
   "category": "temple",
@@ -902,6 +944,7 @@
  {
   "id": "ryoan-ji",
   "name": "Ryoan-ji",
+  "short": "Ryoan-ji",
   "kanji": "龍安寺",
   "yomi": "りょうあんじ",
   "category": "garden",
@@ -922,6 +965,7 @@
  {
   "id": "tenryu-ji",
   "name": "Tenryu-ji",
+  "short": "Tenryu-ji",
   "kanji": "天龍寺",
   "yomi": "てんりゅうじ",
   "category": "garden",
@@ -942,6 +986,7 @@
  {
   "id": "arashiyama-bamboo-grove",
   "name": "Arashiyama Bamboo Grove",
+  "short": "Bamboo Grove",
   "kanji": "竹林の小径",
   "yomi": "ちくりんのこみち",
   "category": "garden",
@@ -962,6 +1007,7 @@
  {
   "id": "tofuku-ji",
   "name": "Tofuku-ji",
+  "short": "Tofuku-ji",
   "kanji": "東福寺",
   "yomi": "とうふくじ",
   "category": "temple",
@@ -983,6 +1029,7 @@
  {
   "id": "nanzen-ji",
   "name": "Nanzen-ji",
+  "short": "Nanzen-ji",
   "kanji": "南禅寺",
   "yomi": "なんぜんじ",
   "category": "temple",
@@ -1004,6 +1051,7 @@
  {
   "id": "kyoto-imperial-palace",
   "name": "Kyoto Imperial Palace",
+  "short": "Imperial Palace",
   "kanji": "京都御所",
   "yomi": "きょうとごしょ",
   "category": "architecture",
@@ -1025,6 +1073,7 @@
  {
   "id": "kyoto-station",
   "name": "Kyoto Station",
+  "short": "Kyoto Station",
   "kanji": "京都駅",
   "yomi": "きょうとえき",
   "category": "architecture",
@@ -1047,6 +1096,7 @@
  {
   "id": "kyoto-national-museum",
   "name": "Kyoto National Museum",
+  "short": "Kyoto Nat. Museum",
   "kanji": "京都国立博物館",
   "yomi": "きょうとこくりつはくぶつかん",
   "category": "art",
@@ -1069,6 +1119,7 @@
  {
   "id": "nintendo-museum",
   "name": "Nintendo Museum",
+  "short": "Nintendo Museum",
   "kanji": "任天堂ミュージアム",
   "yomi": "にんてんどうミュージアム",
   "category": "technology",
@@ -1090,6 +1141,7 @@
  {
   "id": "tawaraya",
   "name": "Tawaraya",
+  "short": "Tawaraya",
   "kanji": "俵屋",
   "yomi": "たわらや",
   "category": "ryokan",
@@ -1112,6 +1164,7 @@
  {
   "id": "daitoku-ji",
   "name": "Daitoku-ji",
+  "short": "Daitoku-ji",
   "kanji": "大徳寺",
   "yomi": "だいとくじ",
   "category": "temple",
@@ -1133,6 +1186,7 @@
  {
   "id": "kodai-ji",
   "name": "Kodai-ji",
+  "short": "Kodai-ji",
   "kanji": "高台寺",
   "yomi": "こうだいじ",
   "category": "temple",
@@ -1153,6 +1207,7 @@
  {
   "id": "kyoto-city-kyocera-museum",
   "name": "Kyoto City KYOCERA Museum of Art",
+  "short": "Kyocera Museum",
   "kanji": "京都市京セラ美術館",
   "yomi": "きょうとしきょうせらびじゅつかん",
   "category": "art",
@@ -1174,6 +1229,7 @@
  {
   "id": "hiiragiya",
   "name": "Hiiragiya",
+  "short": "Hiiragiya",
   "kanji": "柊家",
   "yomi": "ひいらぎや",
   "category": "ryokan",
@@ -1196,6 +1252,7 @@
  {
   "id": "eikan-do",
   "name": "Eikan-do (Zenrin-ji)",
+  "short": "Eikan-do (Zenrin-ji)",
   "kanji": "永観堂禅林寺",
   "yomi": "えいかんどうぜんりんじ",
   "category": "temple",
@@ -1218,6 +1275,7 @@
  {
   "id": "byodo-in",
   "name": "Byodo-in",
+  "short": "Byodo-in",
   "kanji": "平等院",
   "yomi": "びょうどういん",
   "category": "temple",
@@ -1240,6 +1298,7 @@
  {
   "id": "kyoto-railway-museum",
   "name": "Kyoto Railway Museum",
+  "short": "Kyoto Railway Museum",
   "kanji": "京都鉄道博物館",
   "yomi": "きょうとてつどうはくぶつかん",
   "category": "technology",
@@ -1261,6 +1320,7 @@
  {
   "id": "todai-ji",
   "name": "Todai-ji",
+  "short": "Todai-ji",
   "kanji": "東大寺",
   "yomi": "とうだいじ",
   "category": "temple",
@@ -1282,6 +1342,7 @@
  {
   "id": "kasuga-taisha",
   "name": "Kasuga Taisha",
+  "short": "Kasuga Taisha",
   "kanji": "春日大社",
   "yomi": "かすがたいしゃ",
   "category": "shrine",
@@ -1302,6 +1363,7 @@
  {
   "id": "kofuku-ji",
   "name": "Kofuku-ji",
+  "short": "Kofuku-ji",
   "kanji": "興福寺",
   "yomi": "こうふくじ",
   "category": "temple",
@@ -1324,6 +1386,7 @@
  {
   "id": "nara-park",
   "name": "Nara Park",
+  "short": "Nara Park",
   "kanji": "奈良公園",
   "yomi": "ならこうえん",
   "category": "garden",
@@ -1345,6 +1408,7 @@
  {
   "id": "isui-en",
   "name": "Isui-en",
+  "short": "Isui-en",
   "kanji": "依水園",
   "yomi": "いすいえん",
   "category": "garden",
@@ -1366,6 +1430,7 @@
  {
   "id": "nara-national-museum",
   "name": "Nara National Museum",
+  "short": "Nara National Museum",
   "kanji": "奈良国立博物館",
   "yomi": "ならこくりつはくぶつかん",
   "category": "art",
@@ -1387,6 +1452,7 @@
  {
   "id": "nara-hotel",
   "name": "Nara Hotel",
+  "short": "Nara Hotel",
   "kanji": "奈良ホテル",
   "yomi": "ならホテル",
   "category": "architecture",
@@ -1408,6 +1474,7 @@
  {
   "id": "yoshiki-en",
   "name": "Yoshiki-en",
+  "short": "Yoshiki-en",
   "kanji": "吉城園",
   "yomi": "よしきえん",
   "category": "garden",
@@ -1430,6 +1497,7 @@
  {
   "id": "osaka-castle",
   "name": "Osaka Castle",
+  "short": "Osaka Castle",
   "kanji": "大阪城",
   "yomi": "おおさかじょう",
   "category": "architecture",
@@ -1452,6 +1520,7 @@
  {
   "id": "sumiyoshi-taisha",
   "name": "Sumiyoshi Taisha",
+  "short": "Sumiyoshi Taisha",
   "kanji": "住吉大社",
   "yomi": "すみよしたいしゃ",
   "category": "shrine",
@@ -1472,6 +1541,7 @@
  {
   "id": "shitennoji",
   "name": "Shitennoji",
+  "short": "Shitennoji",
   "kanji": "四天王寺",
   "yomi": "してんのうじ",
   "category": "temple",
@@ -1493,6 +1563,7 @@
  {
   "id": "umeda-sky-building",
   "name": "Umeda Sky Building",
+  "short": "Umeda Sky Building",
   "kanji": "梅田スカイビル",
   "yomi": "うめだスカイビル",
   "category": "architecture",
@@ -1514,6 +1585,7 @@
  {
   "id": "nakanoshima-museum-of-art",
   "name": "Nakanoshima Museum of Art",
+  "short": "Nakanoshima Museum",
   "kanji": "大阪中之島美術館",
   "yomi": "おおさかなかのしまびじゅつかん",
   "category": "art",
@@ -1536,6 +1608,7 @@
  {
   "id": "church-of-the-light",
   "name": "Church of the Light",
+  "short": "Church of the Light",
   "kanji": "光の教会",
   "yomi": "ひかりのきょうかい",
   "category": "architecture",
@@ -1558,6 +1631,7 @@
  {
   "id": "chikatsu-asuka-historical-museum",
   "name": "Chikatsu-Asuka Historical Museum",
+  "short": "Chikatsu-Asuka",
   "kanji": "近つ飛鳥博物館",
   "yomi": "ちかつあすかはくぶつかん",
   "category": "architecture",
@@ -1580,6 +1654,7 @@
  {
   "id": "tower-of-the-sun",
   "name": "Tower of the Sun (Expo '70)",
+  "short": "Tower of the Sun",
   "kanji": "太陽の塔",
   "yomi": "たいようのとう",
   "category": "art",
