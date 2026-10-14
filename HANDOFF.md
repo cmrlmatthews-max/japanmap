@@ -1,7 +1,7 @@
 # HANDOFF — Journey Through Japan (日本の旅) 3D map
 
 Read this first in a new chat. It holds the state, the decisions, and the working method.
-Last update: 2026-10-13, end of Phase 2. The push to GitHub is still open.
+Last update: 2026-10-13, end of Phase 2. The app is live on GitHub Pages.
 
 ## Project in one paragraph
 
@@ -116,8 +116,8 @@ Notes to recheck before the trip:
 - One continuous world. One base file plus three patches. No separate scene per region.
 - One Kansai file covers Kyoto, Nara, and Osaka. Cade approved this.
 - Vertical exaggeration is 2.0.
-- Hosting: GitHub Pages. The repo name is `japanmap` (not `japan-3d-map`). Repo URL: https://github.com/cmrlmatthews-max/japanmap. The Pages URL is https://cmrlmatthews-max.github.io/japanmap/ after the push and the Pages setup.
-- `gh` is NOT on the Mac. The Mac also has no GitHub credentials. See "How to publish".
+- Hosting: GitHub Pages. The repo name is `japanmap` (not `japan-3d-map`). Repo URL: https://github.com/cmrlmatthews-max/japanmap. The app is live at https://cmrlmatthews-max.github.io/japanmap/.
+- `gh` is NOT on the Mac. The Mac has no GitHub credentials. Claude pushes from the cloud workspace. See "How to publish".
 - The info card is a washi panel. It is a bottom sheet on iPhone portrait. It docks on the right on iPad and on iPhone landscape. This differs from the concept doc. The height of a landscape phone is too small for a bottom sheet.
 - Markdown for all docs. Short sentences (ASD-STE100 style).
 
@@ -127,7 +127,7 @@ Notes to recheck before the trip:
 |---|---|
 | 0 Assets | Done. 14 PNGs keyed. |
 | 1 Paper and terrain | Done. Hakone–Fuji terrain, ink shader, scroll frame, labels, mist. 190 fps in Chrome. Screenshot: `_scratch/phase1-screenshot.jpg` |
-| 2 Places and pins | Done 2026-10-13. Not yet pushed to GitHub. Not yet tested on a real iPhone or iPad. |
+| 2 Places and pins | Done 2026-10-13. Live on GitHub Pages. Not yet tested on a real iPhone or iPad. |
 | 3 Route and fly-through | NEXT |
 | 4 Fall, light, mist | Mist bands still read as billboard strips. Band contrast needs a second pass. |
 | 5 Memories and merge | |
@@ -245,13 +245,13 @@ The page also exposes `window.__map` (camera, controls, pins, `flyToRegion`, `op
 
 ## How to publish
 
-Status: NOT done. The local repo exists. The push is open.
+Status: Done 2026-10-13. The app is live at https://cmrlmatthews-max.github.io/japanmap/.
 
-- The local repo is initialized in the Mac folder. The branch is `main`. It has one commit. The remote `origin` is set to https://github.com/cmrlmatthews-max/japanmap.
-- The Mac has no GitHub credentials. It has no keychain entry, no SSH key, and no `gh`. A push from the Mac fails today.
-- Cade must do one of two things. He pushes from his own terminal. Or he gives a credentials route, for example a token that Claude can use for one push.
-- After the push, Cade enables GitHub Pages. Settings, Pages, source: branch `main`, folder root.
-- The app is then live at https://cmrlmatthews-max.github.io/japanmap/.
+- The Mac folder is a git repo on branch `main`. The remote `origin` is https://github.com/cmrlmatthews-max/japanmap.
+- The Mac has no GitHub credentials (no keychain entry, no SSH key, no `gh`). Do not push from the Mac.
+- Push method that works: commit on the Mac with osascript (`git add -A && git commit`). Then run `git bundle create _scratch/japanmap.bundle main`. Stage the bundle to the cloud workspace. Clone it there, set `origin` to the GitHub URL, and push. The cloud session needs the repo attached with push access (`add_repo`, access "push"). Cade chose this method on 2026-10-13.
+- After a cloud push, run `git fetch` on the Mac only if the cloud made new commits. Normally the Mac makes all commits, so the two stay the same.
+- GitHub Pages is on: branch `main`, folder root. Claude turned it on in Chrome (Settings, Pages). The GitHub API path for Pages is blocked through the cloud proxy.
 - Then Cade opens that URL on iPhone and iPad and uses Share, Add to Home Screen. He tests there.
 - After any change to a cached file, bump `CACHE` in `sw.js`. Then push again.
 
@@ -298,6 +298,6 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 - The Mac shell cannot delete files. Move them to `_scratch/` instead.
 - Gemini garbles kanji in grids. Single kanji and short titles are fine.
 - Chrome blocks a second automatic download per host. See "How to fetch terrain".
-- The Mac has no GitHub credentials. See "How to publish".
+- The Mac has no GitHub credentials. Push from the cloud. See "How to publish".
 - The repo is `japanmap`. The Mac folder is `japan-3d-map`. Do not mix them up.
 - The service worker caches the app files. After a change, bump `CACHE` in `sw.js`, or a phone shows the old version.

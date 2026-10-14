@@ -3,7 +3,7 @@
 **Owner:** Cade (CMRLM)
 **For:** Cade and Casey, fall 2027 honeymoon
 **Date:** 2026-10-13
-**Status:** Phases 0, 1, and 2 done 2026-10-13. Phase 2 (places and pins) is complete except the push to GitHub. Phase 3 (route and fly-through) is next.
+**Status:** Phases 0, 1, and 2 done 2026-10-13. Phase 2 (places and pins) is complete and live at https://cmrlmatthews-max.github.io/japanmap/. Phase 3 (route and fly-through) is next.
 
 ---
 
@@ -161,7 +161,7 @@ Each phase ends with a working app you can open on your phone.
 |---|---|---|---|---|
 | 0. Assets | Gemini images in `assets/`. You run the prompts. | Gemini (you) + Haiku to check filenames and sizes | Simple checks. | Done 2026-10-13 |
 | 1. Paper and terrain | Scroll frame, washi ground, one region (Hakone and Fuji) in 3D relief with ink-wash shader | Opus plans the shader. Sonnet builds. | The shader is the hard part. Build is routine after. | Done 2026-10-13 |
-| 2. Places and pins | All six regions. Seal pins from `places.json`. Tap for info card. | Sonnet builds. Haiku converts the table to JSON. Sonnet checks the data. | Data entry is repetitive. | Done 2026-10-13. Push to GitHub open. |
+| 2. Places and pins | All six regions. Seal pins from `places.json`. Tap for info card. | Sonnet builds. Haiku converts the table to JSON. Sonnet checks the data. | Data entry is repetitive. | Done 2026-10-13. Live on GitHub Pages. |
 | 3. Route and fly-through | Shinkansen and local lines. Day-by-day itinerary. Play button. | Sonnet | Standard animation work. | Next |
 | 4. Fall, light, mist | Date slider. Sun position. Mist bands. Night mode. | Sonnet builds. Opus reviews the look. | Art judgment at review. | |
 | 5. Memories and merge | Photo pins. Notes. Two itinerary files that merge. Export and import as JSON. | Sonnet | Standard storage work. | |
@@ -250,7 +250,7 @@ Not in the repo: `assets/_jpeg-originals/`, `_scratch/`, and `_test/`. They are 
 
 ## 13. Phase 2 notes (2026-10-13)
 
-Phase 2 is done except the push to GitHub. The app now has one continuous world, 75 seal pins, and an info card.
+Phase 2 is done and live on GitHub Pages. The app now has one continuous world, 75 seal pins, and an info card.
 
 **Terrain**
 
@@ -309,8 +309,8 @@ Phase 2 is done except the push to GitHub. The app now has one continuous world,
 
 - The repo is https://github.com/cmrlmatthews-max/japanmap. It is not `japan-3d-map`.
 - The local repo is initialized in the Mac folder. The branch is `main`. It has one commit. The remote `origin` is set.
-- The Mac has no GitHub credentials: no keychain entry, no SSH key, no `gh`. The push is NOT done.
-- The Pages URL, after the push and the Pages setup, is https://cmrlmatthews-max.github.io/japanmap/.
+- The Mac has no GitHub credentials: no keychain entry, no SSH key, no `gh`. Claude pushes from the cloud workspace with a git bundle.
+- The app is live at https://cmrlmatthews-max.github.io/japanmap/.
 - `.gitignore` ignores `assets/_jpeg-originals/`, `_scratch/`, `_test/`, `node_modules/`, `data/tiles/`, and `.DS_Store`.
 
 **Known issues for later phases**
@@ -324,10 +324,9 @@ Phase 2 is done except the push to GitHub. The app now has one continuous world,
 
 ## 14. Next step
 
-1. Cade pushes the repo to GitHub, or he gives a credentials route. Then Claude pushes.
-2. Cade enables GitHub Pages: branch `main`, folder root.
-3. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad. He adds it to the Home Screen and tests it.
-4. Phase 3: route and fly-through. Export `rail.geojson` from Overpass. Write `itinerary.json`. Add the route layer and the play button.
+1. Done: the push and the GitHub Pages setup.
+2. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad. He adds it to the Home Screen and tests it.
+3. Phase 3: route and fly-through. Export `rail.geojson` from Overpass. Write `itinerary.json`. Add the route layer and the play button.
 
 ---
 
@@ -345,7 +344,7 @@ Phase 2 is done except the push to GitHub. The app now has one continuous world,
 - Place checks: Wikipedia, the official site of each place, and map links (listed per row in `data/places.json`)
 - Playwright: https://playwright.dev/
 - Repo: https://github.com/cmrlmatthews-max/japanmap
-- Pages (after setup): https://cmrlmatthews-max.github.io/japanmap/
+- Pages: https://cmrlmatthews-max.github.io/japanmap/
 
 **Confidence:** High on the stack, style, and layer plan. Medium on fall dates. They are averages, and the UI says so.
 
