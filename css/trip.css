@@ -1,0 +1,172 @@
+/* Phase 3: itinerary drawer (washi page) and fly-through player. Built by js/trip.js.
+   Not docked (iPhone portrait, iPad portrait): a bottom sheet. The player lives in the sheet's handle row.
+   Docked (same media query as the info card: iPad landscape, iPhone landscape): a page on the right, inside the right roller.
+   The player is then a slim bar at the bottom of the free map area. */
+
+#scroll { --hh0: 72px; --hh: calc(var(--hh0) + var(--sab)); --crw: 0px; --dwf: 360px; --dw: var(--dwf); }
+
+/* ---------- the washi sheet (default: bottom sheet) ---------- */
+#drawer { position: absolute; z-index: 8; left: 0; right: 0; bottom: 0; margin: 0 auto; width: min(560px, 100%); height: 62%;
+          background: var(--paper) url('../assets/web/itinerary-bg.jpg') 50% 0 / cover no-repeat;
+          border: 1px solid var(--grey-l); border-bottom: 0; border-radius: 14px 14px 0 0; overflow: hidden; color: var(--ink);
+          transform: translateY(calc(100% - var(--hh))); transition: transform .32s ease; }
+#drawer.open { transform: none; }
+#drawer.dragging { transition: none; }
+#drawer::before { content: ''; position: absolute; inset: 0; background: rgba(245, 239, 224, .74); border-radius: inherit; pointer-events: none; }  /* flat wash: calms the ruled lines, as on the info card */
+.d-sheet { position: relative; height: 100%; display: flex; flex-direction: column; }
+.d-probe { position: absolute; left: 0; top: 0; width: 0; height: var(--hh); visibility: hidden; pointer-events: none; }
+.d-full { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.d-spine { display: none; }
+.d-fold { display: none; }
+
+.d-top { display: flex; align-items: center; gap: 10px; padding: 12px 18px 6px; flex: none; }
+.d-title { display: flex; align-items: center; gap: 9px; min-width: 0; flex: 1; }
+.dt-k { display: grid; place-items: center; width: 24px; height: 24px; flex: none; background: var(--vermilion); color: var(--paper); font-family: var(--kanji); font-size: 13px; border-radius: 4px 3px 5px 3px; }
+.dt-t { font-size: 15px; font-weight: 500; letter-spacing: .02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dt-n { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--grey-d); white-space: nowrap; margin-left: auto; }
+
+/* ten day seals: 40 px touch targets, the row scrolls sideways when the page is narrow */
+.d-tabs { position: relative; display: flex; flex: none; overflow-x: auto; overflow-y: hidden; padding: 0 12px 4px; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; border-bottom: 1px solid var(--grey-l); }
+.d-tabs::-webkit-scrollbar { display: none; }
+.dtab { flex: none; width: 40px; height: 40px; padding: 0; background: none; border: 0; cursor: pointer; display: grid; place-items: center; }
+.dtab span { display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--ink); border-radius: 4px 3px 5px 3px; color: var(--ink); font-family: var(--kanji); font-size: 16px; line-height: 1; transition: background .3s, color .3s, border-color .3s; }
+.dtab.on span { background: var(--vermilion); border-color: var(--vermilion); color: var(--paper); }
+.dtab:active span { transform: scale(.94); }
+
+.d-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 12px 18px calc(22px + var(--sab)); }
+.dd-kanji { font-family: var(--kanji); font-size: 36px; line-height: 1.15; letter-spacing: .02em; }
+.dd-title { margin-top: 3px; font-size: 17px; font-weight: 500; line-height: 1.35; }
+.dd-meta { margin-top: 4px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--grey-d); }
+.dd-stay { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; }
+.stay-seal { display: grid; place-items: center; width: 20px; height: 20px; flex: none; background: var(--vermilion); color: var(--paper); font-family: var(--kanji); font-size: 12px; border-radius: 3px 2px 4px 2px; }
+.stay-k { font-family: var(--kanji); color: var(--grey-d); font-size: 13px; }
+
+.d-stops { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--grey-l); padding-top: 6px; }
+.stop-btn { display: grid; grid-template-columns: 26px 1fr; column-gap: 12px; align-items: center; width: 100%; min-height: 44px; margin: 0; padding: 5px 8px 5px 0; text-align: left; background: none; border: 0; border-radius: 3px; cursor: pointer; color: var(--ink); font: inherit; transition: background .3s; }
+.stop-btn:active { background: rgba(44, 44, 42, .06); }
+.sn { grid-row: 1 / span 2; display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--ink); border-radius: 4px 3px 5px 3px; font-family: var(--kanji); font-size: 14px; line-height: 1; transition: background .3s, color .3s, border-color .3s; }
+.st { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 9px; min-width: 0; }
+.sk { font-family: var(--kanji); font-size: 20px; line-height: 1.25; }
+.sy { font-size: 10px; letter-spacing: .14em; color: var(--grey-d); }
+.se { font-size: 13px; color: var(--ink); line-height: 1.3; }
+.stop.now .stop-btn { background: rgba(200, 52, 30, .12); box-shadow: inset 3px 0 0 var(--vermilion); padding-left: 10px; margin-left: -10px; width: calc(100% + 10px); }
+.stop.now .sn { background: var(--vermilion); border-color: var(--vermilion); color: var(--paper); }
+
+/* leg rows: the rail between two stops */
+.leg { margin: 0 0 0 12px; padding: 5px 0 6px 25px; border-left: 1.5px dashed var(--grey-m); }
+.lfrom { font-size: 11px; letter-spacing: .06em; color: var(--grey-d); margin-bottom: 3px; }
+.lmain { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 8px; }
+.mark { display: inline-block; padding: 1px 6px 2px; border: 1.5px solid var(--ink); border-radius: 3px 2px 4px 2px; font-family: var(--kanji); font-size: 12px; line-height: 1.3; color: var(--ink); white-space: nowrap; }
+.mark.m-shinkansen { background: var(--vermilion); border-color: var(--vermilion); color: var(--paper); }
+.mark.m-walk { border-style: dotted; color: var(--grey-d); border-color: var(--grey-d); }
+.lm { font-size: 12px; color: var(--grey-d); }
+.lparts { margin-top: 2px; font-size: 11px; color: var(--grey-m); letter-spacing: .02em; line-height: 1.45; }
+.leg:has(.m-shinkansen) { border-left: 1.5px solid var(--vermilion); }
+
+/* ---------- the player ---------- */
+.pl-play { width: 40px; height: 40px; flex: none; padding: 0; display: grid; place-items: center; color: var(--paper); background: var(--vermilion); border: 2px solid var(--vermilion); border-radius: 4px 3px 5px 3px; cursor: pointer; position: relative; z-index: 2; }
+.pl-play svg { width: 22px; height: 22px; grid-area: 1 / 1; pointer-events: none; }
+.pl-play svg + svg { display: none; }
+.pl-play.playing svg:first-child { display: none; }
+.pl-play.playing svg + svg { display: block; }
+.pl-play:active { transform: scale(.95); }
+.pl-cap { min-width: 0; font-size: 13px; letter-spacing: .03em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 8px; }
+.pl-txt { overflow: hidden; text-overflow: ellipsis; }
+.pl-chev { flex: none; display: grid; place-items: center; width: 14px; height: 14px; color: var(--vermilion); transition: transform .3s; }
+.pl-chev svg { width: 11px; height: 11px; }
+.pl-chev.flip { transform: rotate(180deg); }
+.pl-scrub { position: relative; height: 32px; touch-action: none; cursor: pointer; user-select: none; -webkit-user-select: none; outline: none; }
+.pl-track { position: absolute; left: 13px; right: 13px; top: 0; bottom: 0; }
+.pl-line, .pl-fill { position: absolute; left: 0; top: 21px; height: 3px; margin-top: -1.5px; border-radius: 2px; }
+.pl-line { right: 0; background: var(--grey-l); }
+.pl-fill { width: 0; background: var(--ink); }
+.pl-tick { position: absolute; top: 15px; width: 1.5px; height: 12px; margin-left: -.75px; background: var(--ink); opacity: .75; }
+.pl-dn { position: absolute; top: 1px; transform: translateX(-50%); font-size: 9px; line-height: 12px; color: var(--grey-d); pointer-events: none; }
+.pl-thumb { position: absolute; top: 21px; left: 0; width: 18px; height: 18px; margin: -9px 0 0 -9px; background: var(--vermilion); border-radius: 4px 3px 5px 3px; box-shadow: 0 0 0 2px var(--paper); }
+.pl-scrub.drag .pl-thumb { transform: scale(1.18); }
+.pl-scrub:focus-visible .pl-thumb { box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--ink); }
+
+/* default (not docked): the player is the sheet's handle row. Scrub along its top edge, play seal and caption below it.
+   #player itself is display:contents here, so the app's free-area code sees only the sheet (not a second box inside it). */
+#player { display: contents; }
+.pl-row { position: relative; z-index: 2; flex: none; height: var(--hh0); display: flex; align-items: center; gap: 10px; padding: 29px 14px 3px 12px; touch-action: none; cursor: pointer; }
+.pl-row .pl-scrub { position: absolute; left: 0; right: 0; top: 0; height: 30px; }
+.pl-row .pl-cap { flex: 1; }
+
+/* iPad portrait: the region crests stand on the right edge, so the sheet keeps clear of them */
+@media (min-width: 601px) { #drawer { width: min(560px, 100% - 2 * (var(--cap-in) + var(--cs) + 22px)); } }
+
+/* the filter row, region caption: sit above the handle */
+body.has-trip #filters { bottom: calc(var(--hh) + 10px); transition: left .45s ease, gap .3s ease, opacity .3s ease; }
+body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 0; pointer-events: none; }
+@media (max-width: 600px) {
+  body.has-trip #region { bottom: calc(var(--hh) + 10px + var(--fs) + 14px); transition: opacity .35s ease; }
+}
+
+/* ---------- docked: iPad landscape, iPhone landscape ---------- */
+@media (min-width: 900px), (max-height: 520px) and (orientation: landscape) {
+  #scroll { --dwf: clamp(300px, 30vw, 380px); --dw: var(--dwf); }
+  body.has-trip:not(.trip-open) #scroll { --dw: 46px; }
+  #drawer { left: auto; right: calc(var(--cap-in) + 8px); top: 104px; bottom: auto; margin: 0; width: var(--dw); height: calc(100% - 120px);
+            border: 1px solid var(--grey-l); border-radius: 6px; transform: none;
+            transition: width .35s ease, height .35s ease, transform .45s ease; }
+  #drawer.open { transform: none; }
+  body.has-trip:not(.trip-open) #drawer { height: 176px; }
+  body.card-open #drawer { transform: translateX(calc(100% + var(--cap-in) + 40px)); pointer-events: none; }   /* the info card takes the same place; the page comes back when it closes */
+  .d-sheet { position: static; }
+  .d-full { position: absolute; top: 0; right: 0; bottom: 0; width: var(--dwf); transition: opacity .3s ease; }
+  #drawer:not(.open) .d-full { opacity: 0; pointer-events: none; }
+  .d-fold { display: grid; place-items: center; flex: none; width: 40px; height: 40px; margin: -8px -10px -8px 0; padding: 0; background: none; border: 0; color: var(--grey-d); cursor: pointer; }
+  .d-fold svg { width: 16px; height: 16px; }
+  .d-spine { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px 0 8px; background: none; border: 0; cursor: pointer; color: var(--ink); opacity: 0; pointer-events: none; transition: opacity .3s ease .1s; }
+  #drawer:not(.open) .d-spine { opacity: 1; pointer-events: auto; }
+  .sp-c { display: grid; place-items: center; width: 16px; height: 16px; color: var(--grey-d); transform: rotate(180deg); }
+  .sp-c svg { width: 14px; height: 14px; }
+  .sp-n { display: grid; place-items: center; width: 28px; height: 28px; background: var(--vermilion); color: var(--paper); font-family: var(--kanji); font-size: 16px; border-radius: 4px 3px 5px 3px; }
+  .sp-k { writing-mode: vertical-rl; font-family: var(--kanji); font-size: 18px; line-height: 1.2; letter-spacing: .06em; overflow: hidden; max-height: 90px; }
+
+  /* the player: a slim bar at the bottom of the free map area, above the filter row */
+  #player { display: block; position: absolute; z-index: 8; left: calc(var(--cap-in) + 56px + var(--sal)); right: calc(var(--cap-in) + 8px + var(--dw) + 10px + var(--crw)); bottom: calc(max(16px, var(--sab)) + var(--fs) + 10px);
+            padding: 7px 8px 5px 10px; background: rgba(245, 239, 224, .93); border: 1px solid var(--grey-l); border-radius: 6px; transition: right .35s ease; }
+  .pl-row { display: grid; grid-template-columns: 40px 1fr; column-gap: 10px; align-items: center; height: auto; padding: 0; cursor: default; touch-action: auto; }
+  .pl-row .pl-play { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
+  .pl-row .pl-cap { grid-column: 2; grid-row: 1; flex: none; font-size: 12px; min-height: 15px; }
+  .pl-row .pl-scrub { position: relative; grid-column: 2; grid-row: 2; left: auto; right: auto; top: auto; height: 32px; }
+  .pl-row .pl-chev { display: none; }
+  /* the region crests keep clear of the page (left of it); the filter row centres in what is left */
+  #crests { right: calc(var(--cap-in) + 8px + var(--dw) + 10px); transition: opacity .35s ease, right .35s ease; }
+  body.has-trip #filters { bottom: max(16px, var(--sab)); left: calc((100% + 52px - var(--dw) - var(--crw)) / 2); }
+  body.has-trip.card-open #filters { left: calc((100% + 52px - var(--card-w)) / 2); }
+  body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 1; pointer-events: auto; }
+  body.has-trip.card-open #region { opacity: 0; pointer-events: none; }
+}
+
+/* iPhone landscape: a narrower page, folded by default; the map needs the room */
+@media (max-height: 520px) and (orientation: landscape) {
+  #scroll { --dwf: 260px; --dw: var(--dwf); --crw: 52px; }
+  body.has-trip:not(.trip-open) #scroll { --dw: 46px; }
+  #drawer { top: 60px; height: calc(100% - 68px); }
+  body.has-trip:not(.trip-open) #drawer { height: 150px; }
+  body.card-open #drawer { top: 60px; }
+  .dd-kanji { font-size: 30px; }
+  .d-top { padding-top: 8px; }
+  .d-body { padding-bottom: 16px; }
+  body.has-trip.trip-open #scroll { --fs: 30px; }
+  body.has-trip.trip-open #filters { gap: 4px; }
+  #player { padding: 5px 8px 3px 8px; }
+  .pl-row .pl-cap { font-size: 11px; min-height: 13px; }
+  .pl-row .pl-scrub { height: 30px; }
+  .sp-k { max-height: 60px; font-size: 16px; }
+}
+
+/* ---------- reduced motion: no slides, only fades ---------- */
+@media (prefers-reduced-motion: reduce) {
+  #drawer, #crests, body.has-trip #filters, .d-full, .d-spine { transition-property: opacity; transition-duration: .2s; }
+  #drawer { transition-duration: .01s; }
+  #drawer.open .d-full { animation: d-fade .3s ease both; }
+  .pl-chev { transition: none; }
+}
+@keyframes d-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* OSM attribution for the rail data (ODbL), at the foot of the drawer page */
+.d-body::after { content: 'Rail data © OpenStreetMap contributors'; display: block; margin: 18px 0 10px; font: 10px/1.4 var(--body, 'Shippori Mincho', serif); color: #8E8B82; letter-spacing: .02em; }

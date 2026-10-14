@@ -1,7 +1,7 @@
 # HANDOFF — Journey Through Japan (日本の旅) 3D map
 
 Read this first in a new chat. It holds the state, the decisions, and the working method.
-Last update: 2026-10-13, end of Phase 2. The app is live on GitHub Pages.
+Last update: 2026-10-14, end of Phase 3. The app is live on GitHub Pages.
 
 ## Project in one paragraph
 
@@ -24,17 +24,27 @@ japan-3d-map/
 ├── js/ink-shader.js           ← ShaderMaterial: height bands, dry-brush streaks, contours, coast, washi grain, edge fade, patch cut-outs
 ├── js/pins.js                 ← canvas hanko seals, pin sprites, labels, fade by distance, overlap culling, tap picking
 ├── js/ui.js                   ← info card, region crests, category filter row, who picker, saved choices (localStorage)
+├── js/route.js                ← Phase 3: route layer (ink-brush ribbons on the terrain), faint rail network, station ticks
+├── js/trip.js                 ← Phase 3: itinerary drawer (washi page) and fly-through player (play, pause, scrub)
+├── js/tips.js                 ← Phase 3: symbol tooltips (hover on Mac, long press on iPhone and iPad)
+├── css/route.css, css/trip.css, css/tips.css ← Phase 3 styles, one file per module
 ├── data/central-japan-z9.bin  ← base terrain, z9, 2048x768
 ├── data/hakone-fuji-z11.bin   ← patch, z11, 1280x1280
 ├── data/tokyo-z11.bin         ← patch, z11, 1024x768
 ├── data/kansai-z11.bin        ← patch, z11, 1024x1280 (Kyoto, Nara, Osaka in one file)
 ├── data/places.json           ← 75 places. The source of truth for pins.
+├── data/rail.geojson          ← 11 rail lines and 21 stations from OSM (23 KB). Built by tools/build-rail.py.
+├── data/itinerary-cade.json   ← Cade's day plan. Built by tools/build-itinerary.py.
+├── data/itinerary-casey.json  ← Casey's day plan (starts as a copy of Cade's).
+├── itinerary-draft.md         ← the starter plan in readable form, with the stations table
 ├── assets/*.png               ← keyed art assets, originals (see gemini-prompts.md status table)
 ├── assets/web/                ← web copies the app loads: washi, mist, card background, caps, title, 6 crests, 3 icons (1.7 MB)
 ├── assets/_jpeg-originals/    ← raw Gemini downloads (gitignored)
 ├── tools/key-magenta.py       ← magenta key → RGBA PNG
+├── tools/build-rail.py        ← _scratch/rail-raw*.json → data/rail.geojson (Dijkstra per line, Douglas-Peucker, station snap)
+├── tools/build-itinerary.py   ← the plan as Python data → both itinerary files, with checks
 ├── _scratch/                  ← screenshots, test images (gitignored)
-├── _test/                     ← Playwright test scripts. Cloud container only. Gitignored.
+├── _test/                     ← Playwright test scripts. Gitignored. A copy is kept on the Mac: stage it to the cloud, then run `npm install` in it.
 └── .gitignore                 ← assets/_jpeg-originals/, _scratch/, _test/, node_modules/, data/tiles/, .DS_Store
 ```
 
@@ -120,6 +130,12 @@ Notes to recheck before the trip:
 - `gh` is NOT on the Mac. The Mac has no GitHub credentials. Claude pushes from the cloud workspace. See "How to publish".
 - The info card is a washi panel. It is a bottom sheet on iPhone portrait. It docks on the right on iPad and on iPhone landscape. This differs from the concept doc. The height of a landscape phone is too small for a bottom sheet.
 - Markdown for all docs. Short sentences (ASD-STE100 style).
+- Phase 3 (2026-10-13): nights Tokyo 3 · Kawaguchiko 1 · Hakone 1 · Kyoto 3 · Osaka 1. Route order Tokyo → Fuji → Hakone → Kyoto → Nara → Osaka, fly home from KIX.
+- Two itinerary files (`itinerary-cade.json`, `itinerary-casey.json`), same format. Casey's starts as a copy. Merge is Phase 5.
+- Route styles: Shinkansen thick vermilion dashes, local thin ink, walk dots, bus thin grey, boat thin wavy, ropeway thin with ticks.
+- Fly-through: one scrub bar for the whole trip. Hop 6 to 8 s, pause 3 s.
+- Drawer: bottom sheet on iPhone portrait (and iPad portrait), docked right on iPad landscape and iPhone landscape.
+- Tooltips with the English translation: hover on the Mac, long press on touch. No tooltips on map pins.
 
 ## Phase status
 
@@ -128,8 +144,8 @@ Notes to recheck before the trip:
 | 0 Assets | Done. 14 PNGs keyed. |
 | 1 Paper and terrain | Done. Hakone–Fuji terrain, ink shader, scroll frame, labels, mist. 190 fps in Chrome. Screenshot: `_scratch/phase1-screenshot.jpg` |
 | 2 Places and pins | Done 2026-10-13. Live on GitHub Pages. Not yet tested on a real iPhone or iPad. |
-| 3 Route and fly-through | NEXT |
-| 4 Fall, light, mist | Mist bands still read as billboard strips. Band contrast needs a second pass. |
+| 3 Route and fly-through | Done 2026-10-14. Live on GitHub Pages. Not yet tested on a real iPhone or iPad. |
+| 4 Fall, light, mist | NEXT. Mist bands still read as billboard strips. Band contrast needs a second pass. |
 | 5 Memories and merge | |
 | 6 Polish and sound | |
 
@@ -178,18 +194,72 @@ The app now shows one continuous 3D world with 75 seal pins. All six regions wor
 - The Tokyo area is flat, so it reads as plain paper. For Phase 4, consider a water or wave wash for the sea. Use `assets/wave-pattern-tile.png`.
 - Coastlines are slightly stair-stepped at the overview zoom.
 
-## Phase 3 scope
+## Phase 3 result
 
-Goal: show the route and fly along it. Ask Cade numbered questions before you build. Wait for "go".
+The app now shows the trip route on the terrain and flies along it. Cade gave "defaults, go" on 2026-10-13. The defaults were:
 
-1. `data/rail.geojson`: export the rail lines from OSM Overpass as one static file. Clip it to the six regions. Check first whether the cloud container can reach Overpass. If it cannot, fetch the data through Chrome like the terrain.
-2. `data/itinerary.json`: the day-by-day plan. One stop list per day. Each stop uses a `placeId` from `places.json`. Cade needs to give the day plan and the nights per city.
-3. `js/route.js`: draw the route layer. Shinkansen is a thick vermilion dashed line. Local trains are thin. Walking is dotted.
-4. Route seal in the left seal column. It turns the layer on and off. It never moves the camera.
-5. Itinerary panel: a fold-out washi page. It slides up from the bottom on iPhone. It docks on the right on iPad.
-6. Play button, pause button, and scrub bar. Each hop lasts 6 to 8 seconds. Each stop pauses 3 seconds.
-7. Reuse `flyToPose` and `freeRect` from `js/app.js`. Follow the reduced motion rule.
-8. Review on screen (Opus). Then update this file and the concept doc.
+- Nights: Tokyo 3 · Kawaguchiko 1 · Hakone 1 · Kyoto 3 · Osaka 1 (9 nights, 10 days). Osaka is last, because the flight home leaves from KIX.
+- Stops: core places only. Chrome on the Mac had no "Add to trip" picks (`jmap.v1` was empty).
+- Casey's file starts as a copy of Cade's file.
+- Extra lines: JR Chuo (Shinjuku–Otsuki) and JR Kyoto (Kyoto–Osaka). Fuji to Hakone is a bus.
+- Bus is a thin grey line. Boat is a thin wavy line. Ropeway is a thin line with tick marks.
+- One scrub bar covers the whole trip, with a tick for each day.
+- Tooltips: hover on the Mac, long press (0.45 s) on iPhone and iPad. Pins get no tooltip, because their labels already show English.
+
+**Rail data** (`data/rail.geojson`, 23 KB)
+- 11 lines: tokaido-shinkansen, odakyu, hakone-tozan, hakone-cable, hakone-ropeway, jr-chuo, fujikyuko, jr-nara, kintetsu-kyoto, kintetsu-nara, jr-kyoto. All lengths are in the expected range (Shinkansen 514.6 km).
+- 21 stations. Each station comes from an OSM station node, then snaps onto its line.
+- Raw data: `_scratch/rail-raw.json` and `_scratch/rail-raw-2.json` (gitignored, kept on the Mac). Run `python3 -I tools/build-rail.py` to rebuild.
+- Hakone Tozan has a new OSM name since 2024: 小田急箱根鉄道線. The first export missed it. `rail-raw-2.json` adds it.
+- The JR Nara line in OSM ends at Kizu. Only Kyoto–Inari is used, so this is fine.
+- Ogura station snaps 463 m. Owakudani has no OSM node. Both are walk ends, so the error does not show.
+
+**Itinerary** (`data/itinerary-<who>.json`)
+- Shape: `{ version, who, title, updated, note, nights[], unplaced[], days[ { day, region, kanji, title, stay, stops[], legs[] } ] }`.
+- A leg is `{ from, to, mode, minutes, note?, parts? }`. Modes: shinkansen, local, walk, bus, boat, ropeway, funicular. A part is `{ mode, line?, minutes, to }`. `to` is a station id or a place id.
+- Day 1 has one leg fewer than its stops. On later days, leg 0 comes from the last stop of the day before.
+- 37 stops in 10 days. Not placed yet: nara-park, kyoto-imperial-palace, kyoto-national-museum, nakanoshima-museum-of-art, church-of-the-light (reasons in the file).
+- To change the plan: edit `tools/build-itinerary.py` (and `itinerary-draft.md`), then run `python3 -I tools/build-itinerary.py`. It writes nothing if a check fails.
+
+**Route layer** (`js/route.js`)
+- Ribbons are extruded in screen pixels and draped on the terrain mesh. Two draw calls: the trip, and the faint rail network.
+- Shinkansen: vermilion dashes, about 5 px. Local and cable car: thin ink. Walk: dots. Bus, boat, ropeway as above. Dry-brush edges and darker ink at the start of each stroke.
+- Dash length steps with zoom (with hysteresis), so dashes do not crawl.
+- Station ticks and small kanji labels show below camera distance 120.
+- The 路 seal turns the layer on and off. It never moves the camera.
+- API on `window.__map.route`: `reload(who)`, `setVisible`, `setActiveDay(i|null)`, `setProgress(day, leg, t)` / `setProgress(null)`, `legPath`, `legLength`, `stopWorld`, `dayStops`, plus `legInfo`, `pointOnLeg`, `stationWorld`. Day and leg indices are 0-based.
+
+**Drawer and player** (`js/trip.js`)
+- iPhone portrait and iPad portrait: a bottom sheet. The handle row holds the play button and reads "Day 3 · Kyoto · 3 stops". It opens to about 62 percent.
+- iPad landscape: docked on the right, about 354 px, open by default. The crests move to the left of the drawer.
+- iPhone landscape: docked, 260 px, folded to a slim spine by default.
+- The drawer shows day tabs, the day's kanji and title, the stay, stops, and legs with mode marks. Tap a day to frame it. Tap a stop to fly there and open its card.
+- Timeline: a 6 to 8 s hop into each stop, then a 3 s pause. The whole trip lasts about 5 min 40 s. The ink draws with the camera.
+- Still camera or Reduce Motion: one cut per hop with the paper fade. The timing stays the same.
+- Playback pauses on a map touch, a card, a day or stop tap, a hidden page, or Space.
+- API on `window.__map.trip`: `play`, `pause`, `seek(s)`, `setDay(i)`, `setOpen(b)`, `refresh`, `playing`, `time`, `duration`, `segments`.
+
+**Tooltips** (`js/tips.js`)
+- Targets: layer seals, category seals (with "shown" or "hidden"), crests, the person seal, the card seal and status, the title, and any element with `data-tip="kanji · romaji · English"`.
+- A long press does not toggle the button. A short tap works as before.
+
+**Other changes**
+- `app.js` passes a `ctx` object to the three modules and adds `#drawer` and `#player` to `freeRect` and the pin blockers.
+- Service worker cache is v4. It caches the new files. The itinerary files load network first.
+
+**Testing**
+- Cloud Playwright runs at all four sizes. Zero console errors. Scripts: `p3all.mjs`, `p3check.mjs`, `route-*.mjs`, `trip-func.mjs` (51 checks), `trip-motion.mjs`, `tips-func.mjs` (31 checks).
+- Opus reviewed the screenshots in `_scratch/p3-*.png`, `p3c-*.png`, `route-*.png`, `trip-*.png`, `tips-*.png`.
+- In SwiftShader a screenshot can catch the paper fade or a CSS transition half way. Wait about 3 s after a cut.
+
+### Known issues after Phase 3
+
+- When the phone sheet is open, a day tap frames the day in the small map area above the sheet. Long days (Day 6, Hakone to Kyoto) then look far away.
+- Day 9 has 6 stops (Fushimi Inari, Nintendo Museum, Nara, then Osaka). It is a long day. Consider moving Nintendo to Day 8.
+- On iPad landscape the overview map uses only the area left of the crests.
+- The day tabs scroll sideways in the docked drawer.
+- The two itinerary files do not merge yet (Phase 5). The app shows the file of the current person.
+- Nobody has tested Phase 3 on a real iPhone or iPad.
 
 ## Working method (Cade's expectations)
 
@@ -211,6 +281,8 @@ The cloud container runs Chromium with software GL (SwiftShader). The scripts ar
 
 Scripts:
 
+- `p3all.mjs`: Phase 3 review. It takes screens at the four sizes: overview, Day 6, a seek, and Day 9.
+- `p3check.mjs`: a mid-hop screen on the Day 6 Shinkansen leg.
 - `p2all.mjs`: takes screens at 390x844, 844x390, 1180x820, and 820x1180. It flies to Kyoto, Tokyo, and Hakone and opens one card.
 - `func.mjs`: functional checks. It tests tap picking, drag, Add and Pass, saved choices, and the who picker.
 - `lib.mjs`: shared helpers. Other scripts (`smoke`, `fps`, `seam`, `tour`, `dbg*`) are one-off checks.
@@ -245,7 +317,7 @@ The page also exposes `window.__map` (camera, controls, pins, `flyToRegion`, `op
 
 ## How to publish
 
-Status: Done 2026-10-13. The app is live at https://cmrlmatthews-max.github.io/japanmap/.
+Status: Phase 3 pushed 2026-10-14. The app is live at https://cmrlmatthews-max.github.io/japanmap/.
 
 - The Mac folder is a git repo on branch `main`. The remote `origin` is https://github.com/cmrlmatthews-max/japanmap.
 - The Mac has no GitHub credentials (no keychain entry, no SSH key, no `gh`). Do not push from the Mac.
@@ -254,6 +326,17 @@ Status: Done 2026-10-13. The app is live at https://cmrlmatthews-max.github.io/j
 - GitHub Pages is on: branch `main`, folder root. Claude turned it on in Chrome (Settings, Pages). The GitHub API path for Pages is blocked through the cloud proxy.
 - Then Cade opens that URL on iPhone and iPad and uses Share, Add to Home Screen. He tests there.
 - After any change to a cached file, bump `CACHE` in `sw.js`. Then push again.
+
+## How to fetch OSM data (Overpass)
+
+The cloud and the Mac shell (`device_bash`) cannot reach Overpass. Chrome blocks a second download from the same site. The best method: run curl on the Mac itself through osascript. Native macOS curl has full network access.
+
+1. Write the query to a file in `_scratch/` (for example with `device_bash`).
+2. Run it with osascript. Overpass rejects curl without a user agent (HTTP 406):
+   `do shell script "cd '/Users/cade/Claude-Sandbox/Personal Projects/japan-3d-map/_scratch' && curl -sS -m 150 -A 'japanmap/1.0 (personal project)' -H 'Accept: application/json' --data-urlencode data@q.overpassql https://overpass-api.de/api/interpreter -o out.json -w '%{http_code}'"`
+3. Stage the file to the cloud and convert it there.
+
+This method should also work for the terrain tiles. Try it before the Chrome method below.
 
 ## How to fetch terrain (sandbox and Mac shell cannot reach S3)
 
@@ -301,3 +384,5 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 - The Mac has no GitHub credentials. Push from the cloud. See "How to publish".
 - The repo is `japanmap`. The Mac folder is `japan-3d-map`. Do not mix them up.
 - The service worker caches the app files. After a change, bump `CACHE` in `sw.js`, or a phone shows the old version.
+- OSM renamed the Hakone Tozan Railway to 小田急箱根鉄道線 in 2024. Search both names.
+- Chrome blocks a second automatic download per site (overpass-api.de too). Use osascript curl instead.

@@ -1,0 +1,617 @@
+{
+  "version": 1,
+  "who": "casey",
+  "title": "日本の旅 · Starter plan",
+  "updated": "2026-10-13",
+  "note": "Starter plan drafted from the core places. Times are typical, not timetable checks.",
+  "nights": [
+    {
+      "region": "tokyo",
+      "nights": 3
+    },
+    {
+      "region": "fuji",
+      "nights": 1
+    },
+    {
+      "region": "hakone",
+      "nights": 1
+    },
+    {
+      "region": "kyoto",
+      "nights": 3
+    },
+    {
+      "region": "osaka",
+      "nights": 1
+    }
+  ],
+  "unplaced": [
+    {
+      "id": "nara-park",
+      "reason": "Todai-ji and Kasuga Taisha sit inside the park. The Day 9 walk crosses it."
+    },
+    {
+      "id": "kyoto-imperial-palace",
+      "reason": "Entry needs a reservation. Add it to Day 7 or Day 8 if you book it."
+    },
+    {
+      "id": "kyoto-national-museum",
+      "reason": "No room on Day 8. It is next to Sanjusangendo, near Kiyomizu-dera."
+    },
+    {
+      "id": "nakanoshima-museum-of-art",
+      "reason": "One Osaka night is short. Add it to Day 10 if the flight is late."
+    },
+    {
+      "id": "church-of-the-light",
+      "reason": "Tours are suspended since 2024."
+    }
+  ],
+  "days": [
+    {
+      "day": 1,
+      "region": "tokyo",
+      "kanji": "到着",
+      "title": "Arrive — Azabudai and Roppongi",
+      "stay": null,
+      "stops": [
+        "tokyo-station",
+        "teamlab-borderless",
+        "mori-art-museum"
+      ],
+      "legs": [
+        {
+          "from": "tokyo-station",
+          "to": "teamlab-borderless",
+          "mode": "local",
+          "minutes": 20
+        },
+        {
+          "from": "teamlab-borderless",
+          "to": "mori-art-museum",
+          "mode": "walk",
+          "minutes": 15
+        }
+      ]
+    },
+    {
+      "day": 2,
+      "region": "tokyo",
+      "kanji": "東",
+      "title": "East — Asakusa, Ueno, Odaiba, Akihabara",
+      "stay": null,
+      "stops": [
+        "senso-ji",
+        "tokyo-national-museum",
+        "miraikan",
+        "akihabara-electric-town"
+      ],
+      "legs": [
+        {
+          "from": "mori-art-museum",
+          "to": "senso-ji",
+          "mode": "local",
+          "minutes": 35
+        },
+        {
+          "from": "senso-ji",
+          "to": "tokyo-national-museum",
+          "mode": "local",
+          "minutes": 15
+        },
+        {
+          "from": "tokyo-national-museum",
+          "to": "miraikan",
+          "mode": "local",
+          "minutes": 45
+        },
+        {
+          "from": "miraikan",
+          "to": "akihabara-electric-town",
+          "mode": "local",
+          "minutes": 35
+        }
+      ]
+    },
+    {
+      "day": 3,
+      "region": "tokyo",
+      "kanji": "西",
+      "title": "West — Harajuku, Aoyama, Shinjuku",
+      "stay": null,
+      "stops": [
+        "meiji-jingu",
+        "yoyogi-national-gymnasium",
+        "nezu-museum",
+        "shinjuku-gyoen"
+      ],
+      "legs": [
+        {
+          "from": "akihabara-electric-town",
+          "to": "meiji-jingu",
+          "mode": "local",
+          "minutes": 25
+        },
+        {
+          "from": "meiji-jingu",
+          "to": "yoyogi-national-gymnasium",
+          "mode": "walk",
+          "minutes": 10
+        },
+        {
+          "from": "yoyogi-national-gymnasium",
+          "to": "nezu-museum",
+          "mode": "walk",
+          "minutes": 25
+        },
+        {
+          "from": "nezu-museum",
+          "to": "shinjuku-gyoen",
+          "mode": "local",
+          "minutes": 20
+        }
+      ]
+    },
+    {
+      "day": 4,
+      "region": "fuji",
+      "kanji": "富士",
+      "title": "Fuji Five Lakes",
+      "stay": null,
+      "stops": [
+        "arakurayama-sengen-park",
+        "oshino-hakkai"
+      ],
+      "legs": [
+        {
+          "from": "shinjuku-gyoen",
+          "to": "arakurayama-sengen-park",
+          "mode": "local",
+          "minutes": 135,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 10,
+              "to": "shinjuku-sta"
+            },
+            {
+              "mode": "local",
+              "line": "jr-chuo",
+              "minutes": 60,
+              "to": "otsuki-sta"
+            },
+            {
+              "mode": "local",
+              "line": "fujikyuko",
+              "minutes": 50,
+              "to": "shimoyoshida-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 15,
+              "to": "arakurayama-sengen-park"
+            }
+          ]
+        },
+        {
+          "from": "arakurayama-sengen-park",
+          "to": "oshino-hakkai",
+          "mode": "bus",
+          "minutes": 30
+        }
+      ]
+    },
+    {
+      "day": 5,
+      "region": "hakone",
+      "kanji": "箱根",
+      "title": "Lake Ashi and Owakudani",
+      "stay": "gora-kadan",
+      "stops": [
+        "hakone-shrine",
+        "owakudani",
+        "gora-kadan"
+      ],
+      "legs": [
+        {
+          "from": "oshino-hakkai",
+          "to": "hakone-shrine",
+          "mode": "bus",
+          "minutes": 110,
+          "note": "bus via Gotemba"
+        },
+        {
+          "from": "hakone-shrine",
+          "to": "owakudani",
+          "mode": "ropeway",
+          "minutes": 55,
+          "parts": [
+            {
+              "mode": "boat",
+              "minutes": 25,
+              "to": "togendai-sta"
+            },
+            {
+              "mode": "ropeway",
+              "line": "hakone-ropeway",
+              "minutes": 25,
+              "to": "owakudani-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 5,
+              "to": "owakudani"
+            }
+          ]
+        },
+        {
+          "from": "owakudani",
+          "to": "gora-kadan",
+          "mode": "ropeway",
+          "minutes": 30,
+          "parts": [
+            {
+              "mode": "ropeway",
+              "line": "hakone-ropeway",
+              "minutes": 10,
+              "to": "sounzan-sta"
+            },
+            {
+              "mode": "funicular",
+              "line": "hakone-cable",
+              "minutes": 10,
+              "to": "gora-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 10,
+              "to": "gora-kadan"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 6,
+      "region": "kyoto",
+      "kanji": "箱根から京都",
+      "title": "Hakone to Kyoto",
+      "stay": "tawaraya",
+      "stops": [
+        "hakone-open-air-museum",
+        "hakone-yumoto-onsen",
+        "kyoto-station",
+        "tawaraya"
+      ],
+      "legs": [
+        {
+          "from": "gora-kadan",
+          "to": "hakone-open-air-museum",
+          "mode": "local",
+          "minutes": 10,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 4,
+              "to": "gora-sta"
+            },
+            {
+              "mode": "local",
+              "line": "hakone-tozan",
+              "minutes": 3,
+              "to": "chokoku-no-mori-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 3,
+              "to": "hakone-open-air-museum"
+            }
+          ]
+        },
+        {
+          "from": "hakone-open-air-museum",
+          "to": "hakone-yumoto-onsen",
+          "mode": "local",
+          "minutes": 40,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 3,
+              "to": "chokoku-no-mori-sta"
+            },
+            {
+              "mode": "local",
+              "line": "hakone-tozan",
+              "minutes": 32,
+              "to": "hakone-yumoto-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 5,
+              "to": "hakone-yumoto-onsen"
+            }
+          ]
+        },
+        {
+          "from": "hakone-yumoto-onsen",
+          "to": "kyoto-station",
+          "mode": "shinkansen",
+          "minutes": 145,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 5,
+              "to": "hakone-yumoto-sta"
+            },
+            {
+              "mode": "local",
+              "line": "hakone-tozan",
+              "minutes": 15,
+              "to": "odawara-sta"
+            },
+            {
+              "mode": "shinkansen",
+              "line": "tokaido-shinkansen",
+              "minutes": 120,
+              "to": "kyoto-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 5,
+              "to": "kyoto-station"
+            }
+          ]
+        },
+        {
+          "from": "kyoto-station",
+          "to": "tawaraya",
+          "mode": "local",
+          "minutes": 15
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "region": "kyoto",
+      "kanji": "嵐山",
+      "title": "Arashiyama and the north",
+      "stay": "tawaraya",
+      "stops": [
+        "arashiyama-bamboo-grove",
+        "tenryu-ji",
+        "ryoan-ji",
+        "kinkaku-ji"
+      ],
+      "legs": [
+        {
+          "from": "tawaraya",
+          "to": "arashiyama-bamboo-grove",
+          "mode": "local",
+          "minutes": 40
+        },
+        {
+          "from": "arashiyama-bamboo-grove",
+          "to": "tenryu-ji",
+          "mode": "walk",
+          "minutes": 5
+        },
+        {
+          "from": "tenryu-ji",
+          "to": "ryoan-ji",
+          "mode": "local",
+          "minutes": 20
+        },
+        {
+          "from": "ryoan-ji",
+          "to": "kinkaku-ji",
+          "mode": "walk",
+          "minutes": 20
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "region": "kyoto",
+      "kanji": "東山",
+      "title": "Higashiyama",
+      "stay": "tawaraya",
+      "stops": [
+        "tofuku-ji",
+        "kiyomizu-dera",
+        "nanzen-ji",
+        "ginkaku-ji"
+      ],
+      "legs": [
+        {
+          "from": "kinkaku-ji",
+          "to": "tofuku-ji",
+          "mode": "local",
+          "minutes": 50,
+          "parts": [
+            {
+              "mode": "local",
+              "minutes": 35,
+              "to": "kyoto-sta"
+            },
+            {
+              "mode": "local",
+              "line": "jr-nara",
+              "minutes": 3,
+              "to": "tofukuji-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 10,
+              "to": "tofuku-ji"
+            }
+          ]
+        },
+        {
+          "from": "tofuku-ji",
+          "to": "kiyomizu-dera",
+          "mode": "bus",
+          "minutes": 25
+        },
+        {
+          "from": "kiyomizu-dera",
+          "to": "nanzen-ji",
+          "mode": "bus",
+          "minutes": 20
+        },
+        {
+          "from": "nanzen-ji",
+          "to": "ginkaku-ji",
+          "mode": "walk",
+          "minutes": 30,
+          "note": "Philosopher's Path"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "region": "nara",
+      "kanji": "伏見・宇治・奈良",
+      "title": "Fushimi, Uji, Nara → Osaka",
+      "stay": null,
+      "stops": [
+        "fushimi-inari-taisha",
+        "nintendo-museum",
+        "todai-ji",
+        "kasuga-taisha",
+        "kofuku-ji",
+        "umeda-sky-building"
+      ],
+      "legs": [
+        {
+          "from": "ginkaku-ji",
+          "to": "fushimi-inari-taisha",
+          "mode": "local",
+          "minutes": 35,
+          "parts": [
+            {
+              "mode": "local",
+              "minutes": 25,
+              "to": "kyoto-sta"
+            },
+            {
+              "mode": "local",
+              "line": "jr-nara",
+              "minutes": 5,
+              "to": "inari-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 3,
+              "to": "fushimi-inari-taisha"
+            }
+          ]
+        },
+        {
+          "from": "fushimi-inari-taisha",
+          "to": "nintendo-museum",
+          "mode": "local",
+          "minutes": 30
+        },
+        {
+          "from": "nintendo-museum",
+          "to": "todai-ji",
+          "mode": "local",
+          "minutes": 55,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 10,
+              "to": "ogura-sta"
+            },
+            {
+              "mode": "local",
+              "line": "kintetsu-kyoto",
+              "minutes": 25,
+              "to": "yamato-saidaiji-sta"
+            },
+            {
+              "mode": "local",
+              "line": "kintetsu-nara",
+              "minutes": 5,
+              "to": "kintetsu-nara-sta"
+            },
+            {
+              "mode": "walk",
+              "minutes": 15,
+              "to": "todai-ji"
+            }
+          ]
+        },
+        {
+          "from": "todai-ji",
+          "to": "kasuga-taisha",
+          "mode": "walk",
+          "minutes": 15
+        },
+        {
+          "from": "kasuga-taisha",
+          "to": "kofuku-ji",
+          "mode": "walk",
+          "minutes": 20
+        },
+        {
+          "from": "kofuku-ji",
+          "to": "umeda-sky-building",
+          "mode": "local",
+          "minutes": 60,
+          "parts": [
+            {
+              "mode": "walk",
+              "minutes": 5,
+              "to": "kintetsu-nara-sta"
+            },
+            {
+              "mode": "local",
+              "line": "kintetsu-nara",
+              "minutes": 30,
+              "to": "fuse-sta"
+            },
+            {
+              "mode": "local",
+              "minutes": 25,
+              "to": "umeda-sky-building"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "region": "osaka",
+      "kanji": "大阪",
+      "title": "Osaka, then fly home",
+      "stay": null,
+      "stops": [
+        "osaka-castle",
+        "shitennoji",
+        "sumiyoshi-taisha"
+      ],
+      "legs": [
+        {
+          "from": "umeda-sky-building",
+          "to": "osaka-castle",
+          "mode": "local",
+          "minutes": 20
+        },
+        {
+          "from": "osaka-castle",
+          "to": "shitennoji",
+          "mode": "local",
+          "minutes": 20
+        },
+        {
+          "from": "shitennoji",
+          "to": "sumiyoshi-taisha",
+          "mode": "local",
+          "minutes": 25
+        }
+      ]
+    }
+  ]
+}

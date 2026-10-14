@@ -1,0 +1,11 @@
+/* Route layer: tiny kanji labels beside the station ticks (the strokes themselves are drawn in WebGL, see js/route.js). */
+.rstn {
+  position: absolute; left: 0; top: 0; z-index: 3;
+  pointer-events: none; white-space: nowrap;
+  font-family: var(--kanji); font-size: 11px; line-height: 1.1; letter-spacing: .04em;
+  color: var(--ink);
+  text-shadow: var(--halo-s);
+  opacity: 0; transition: opacity .3s ease;
+  will-change: transform, opacity;
+}
+.rstn.show { opacity: var(--o, 1); }

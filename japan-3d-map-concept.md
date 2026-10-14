@@ -3,7 +3,7 @@
 **Owner:** Cade (CMRLM)
 **For:** Cade and Casey, fall 2027 honeymoon
 **Date:** 2026-10-13
-**Status:** Phases 0, 1, and 2 done 2026-10-13. Phase 2 (places and pins) is complete and live at https://cmrlmatthews-max.github.io/japanmap/. Phase 3 (route and fly-through) is next.
+**Status:** Phases 0 to 3 done. Phase 3 (route and fly-through) is complete and live at https://cmrlmatthews-max.github.io/japanmap/ since 2026-10-14. Phase 4 (fall, light, mist) is next.
 
 ---
 
@@ -162,8 +162,8 @@ Each phase ends with a working app you can open on your phone.
 | 0. Assets | Gemini images in `assets/`. You run the prompts. | Gemini (you) + Haiku to check filenames and sizes | Simple checks. | Done 2026-10-13 |
 | 1. Paper and terrain | Scroll frame, washi ground, one region (Hakone and Fuji) in 3D relief with ink-wash shader | Opus plans the shader. Sonnet builds. | The shader is the hard part. Build is routine after. | Done 2026-10-13 |
 | 2. Places and pins | All six regions. Seal pins from `places.json`. Tap for info card. | Sonnet builds. Haiku converts the table to JSON. Sonnet checks the data. | Data entry is repetitive. | Done 2026-10-13. Live on GitHub Pages. |
-| 3. Route and fly-through | Shinkansen and local lines. Day-by-day itinerary. Play button. | Sonnet | Standard animation work. | Next |
-| 4. Fall, light, mist | Date slider. Sun position. Mist bands. Night mode. | Sonnet builds. Opus reviews the look. | Art judgment at review. | |
+| 3. Route and fly-through | Shinkansen and local lines. Day-by-day itinerary. Play button. | Opus plans and reviews. Sonnet builds. Haiku converts the data. | Standard animation work. | Done 2026-10-14. Live on GitHub Pages. |
+| 4. Fall, light, mist | Date slider. Sun position. Mist bands. Night mode. | Sonnet builds. Opus reviews the look. | Art judgment at review. | Next |
 | 5. Memories and merge | Photo pins. Notes. Two itinerary files that merge. Export and import as JSON. | Sonnet | Standard storage work. | |
 | 6. Polish and sound | Reduce Motion. Offline cache. Icon. Sound toggle with three short samples. Performance pass on your iPhone. | Opus reviews. Sonnet fixes. | Review needs judgment. | |
 
@@ -179,7 +179,7 @@ The local folder on the Mac is `japan-3d-map`. The GitHub repo is `japanmap`. Fi
 japan-3d-map/
 ├── index.html
 ├── manifest.json
-├── sw.js                       ← offline cache, v3
+├── sw.js                       ← offline cache, v4
 ├── css/
 │   └── style.css
 ├── js/
@@ -188,7 +188,9 @@ japan-3d-map/
 │   ├── ink-shader.js           ← ink-wash material
 │   ├── pins.js                 ← seal pins, labels, picking
 │   ├── ui.js                   ← info card, crests, filters, who picker
-│   ├── route.js                ← Phase 3
+│   ├── route.js                ← route layer
+│   ├── trip.js                 ← itinerary drawer and fly-through player
+│   ├── tips.js                 ← symbol tooltips
 │   ├── seasons.js              ← Phase 4
 │   └── memories.js             ← Phase 5
 ├── data/
@@ -197,13 +199,14 @@ japan-3d-map/
 │   ├── tokyo-z11.bin           ← patch, 1024x768
 │   ├── kansai-z11.bin          ← patch, 1024x1280 (Kyoto, Nara, Osaka)
 │   ├── places.json             ← 75 places, checked
-│   ├── itinerary.json          ← Phase 3, day-by-day plan
-│   ├── rail.geojson            ← Phase 3, Overpass export
+│   ├── itinerary-cade.json     ← Cade's day-by-day plan
+│   ├── itinerary-casey.json    ← Casey's day-by-day plan
+│   ├── rail.geojson            ← 11 rail lines and 21 stations, Overpass export (23 KB)
 │   ├── coast.geojson           ← Natural Earth clip (not used: the coast comes from the terrain)
 │   └── foliage.json            ← Phase 4, average peak dates
 ├── assets/                     ← Gemini images (originals)
 │   └── web/                    ← web copies the app loads (1.7 MB)
-├── tools/key-magenta.py
+├── tools/key-magenta.py, build-rail.py, build-itinerary.py
 └── fonts/                      ← not used yet: fonts load from Google Fonts
 ```
 
@@ -235,6 +238,11 @@ Not in the repo: `assets/_jpeg-originals/`, `_scratch/`, and `_test/`. They are 
 6. The GitHub repo is named `japanmap`.
 7. The info card docks on the right on iPad and on iPhone landscape. It is a bottom sheet on iPhone portrait.
 8. Vertical exaggeration is 2.0.
+9. Phase 3 nights: Tokyo 3, Kawaguchiko 1, Hakone 1, Kyoto 3, Osaka 1. The flight home leaves from KIX.
+10. Two itinerary files with one format. Casey's file starts as a copy of Cade's.
+11. Bus is a thin grey line. Boat is a thin wavy line. Ropeway is a thin line with ticks.
+12. The itinerary drawer is a bottom sheet on portrait screens. It docks on the right on landscape screens.
+13. Symbols show their English translation: hover on the Mac, long press on iPhone and iPad.
 
 ---
 
@@ -322,11 +330,41 @@ Phase 2 is done and live on GitHub Pages. The app now has one continuous world, 
 - The Tokyo area is flat, so it reads as plain paper. For Phase 4, consider a water or wave wash for the sea. Use `assets/wave-pattern-tile.png`.
 - Coastlines are slightly stair-stepped at the overview zoom.
 
-## 14. Next step
+## 14. Phase 3 notes (2026-10-14)
 
-1. Done: the push and the GitHub Pages setup.
-2. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad. He adds it to the Home Screen and tests it.
-3. Phase 3: route and fly-through. Export `rail.geojson` from Overpass. Write `itinerary.json`. Add the route layer and the play button.
+Phase 3 is done and live. Full detail is in `HANDOFF.md`, section "Phase 3 result".
+
+**The starter plan** (`itinerary-draft.md`)
+
+| Day | Region | Stops |
+|---|---|---|
+| 1 | Tokyo | Tokyo Station, teamLab Borderless, Mori Art Museum |
+| 2 | Tokyo | Senso-ji, Tokyo National Museum, Miraikan, Akihabara |
+| 3 | Tokyo | Meiji Jingu, Yoyogi Gymnasium, Nezu Museum, Shinjuku Gyoen |
+| 4 | Fuji | Chureito Pagoda, Oshino Hakkai |
+| 5 | Hakone | Hakone Shrine, Owakudani, Gora Kadan (stay) |
+| 6 | Kyoto | Open-Air Museum, Hakone-Yumoto Onsen, Shinkansen to Kyoto Station, Tawaraya (stay) |
+| 7 | Kyoto | Bamboo Grove, Tenryu-ji, Ryoan-ji, Kinkaku-ji |
+| 8 | Kyoto | Tofuku-ji, Kiyomizu-dera, Nanzen-ji, Ginkaku-ji |
+| 9 | Nara | Fushimi Inari, Nintendo Museum, Todai-ji, Kasuga Taisha, Kofuku-ji, Umeda Sky Building |
+| 10 | Osaka | Osaka Castle, Shitennoji, Sumiyoshi Taisha |
+
+Not placed yet: Nara Park (the Day 9 walk crosses it), Kyoto Imperial Palace (needs a reservation), Kyoto National Museum, Nakanoshima Museum of Art, Church of the Light (tours suspended).
+
+**What the app does now**
+
+- Route layer: the trip legs as ink-brush strokes on the terrain. The Shinkansen is a thick vermilion dashed line. Local trains are thin. Walking is dotted. A faint rail network sits under the trip. The 路 seal turns it on and off.
+- Itinerary drawer: a washi page. It reads "Day 3 · Kyoto · 3 stops". Tap a day to frame it. Tap a stop to fly there.
+- Fly-through: play, pause, and a scrub bar for the whole trip. Each hop takes 6 to 8 s. Each stop pauses 3 s. The ink draws with the camera. Still camera and Reduce Motion turn each hop into a cut.
+- Tooltips: every symbol shows its kanji, romaji, and English. Hover on the Mac. Long press on iPhone and iPad.
+
+**Data method:** OSM data came from Overpass through Chrome and through curl on the Mac (osascript). The cloud cannot reach Overpass. OSM renamed the Hakone Tozan line to 小田急箱根鉄道線 in 2024.
+
+## 15. Next step
+
+1. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad and tests Phase 3. Delete the old Home Screen icon first, or wait for the v4 cache to load.
+2. Cade and Casey edit their plans. Tell Claude the changes. Claude updates `tools/build-itinerary.py` and pushes.
+3. Phase 4: fall color, light, and mist.
 
 ---
 
@@ -344,6 +382,7 @@ Phase 2 is done and live on GitHub Pages. The app now has one continuous world, 
 - Place checks: Wikipedia, the official site of each place, and map links (listed per row in `data/places.json`)
 - Playwright: https://playwright.dev/
 - Repo: https://github.com/cmrlmatthews-max/japanmap
+- OpenStreetMap rail data (ODbL): https://www.openstreetmap.org/copyright
 - Pages: https://cmrlmatthews-max.github.io/japanmap/
 
 **Confidence:** High on the stack, style, and layer plan. Medium on fall dates. They are averages, and the UI says so.

@@ -1,0 +1,40 @@
+/* Symbol tooltips: a small washi slip with a vermilion rule on its left edge. Built by js/tips.js */
+
+#tip {
+  position: absolute; left: 0; top: 0; z-index: 40;
+  width: max-content; max-width: 240px;
+  padding: 8px 13px 9px 12px;
+  color: var(--ink, #2C2C2A);
+  background: linear-gradient(rgba(245, 239, 224, .86), rgba(245, 239, 224, .86)), #F5EFE0 url(../assets/web/card-bg.jpg) center / cover;
+  border-left: 3px solid var(--vermilion, #C8341E);
+  border-radius: 2px 6px 6px 2px;
+  box-shadow:
+    0 0 0 1px rgba(44, 44, 42, .07),
+    0 1px 2px rgba(44, 44, 42, .22),
+    0 5px 12px -3px rgba(44, 44, 42, .30),
+    0 12px 26px -8px rgba(44, 44, 42, .22);
+  pointer-events: none;
+  opacity: 0; transition: opacity .12s ease;
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  text-align: left;
+}
+#tip.on { opacity: 1; }
+#tip .tk { font-family: var(--kanji, 'Yuji Syuku', 'Noto Serif CJK JP', serif); font-size: 20px; line-height: 1.25; letter-spacing: .03em; }
+#tip .tl { font-family: var(--mincho, 'Shippori Mincho', 'Noto Serif CJK JP', serif); font-size: 13px; line-height: 1.35; margin-top: 2px; overflow-wrap: break-word; }
+
+/* safe-area probe (read by tips.js) */
+.tip-probe {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; visibility: hidden; pointer-events: none;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+
+/* no iOS long-press callout, text selection or magnifier on the symbols (scoped to the targets) */
+#seals .seal[data-layer], #filters .seal[data-cat], #crests .crest[data-region], #who,
+#card .cseal, #card .status, #title img, [data-tip] {
+  -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+}
+#crests .crest[data-region] img, #title img, [data-tip] img { -webkit-user-drag: none; -webkit-touch-callout: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  #tip { transition: none; }
+}

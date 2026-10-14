@@ -13,6 +13,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Shippori+Mincho:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/route.css">
+<link rel="stylesheet" href="css/trip.css">
+<link rel="stylesheet" href="css/tips.css">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -35,6 +38,7 @@
   <button id="who" class="seal on" title="Who is using this phone?" aria-label="Switch person" hidden><span>ケ</span></button>
 
   <nav id="seals" aria-label="Layers">
+    <button class="seal on" data-layer="route" title="Route">路</button>
     <button class="seal on" data-layer="mist" title="Mist">霧</button>
     <button class="seal on" data-layer="camera" title="Camera moves">動</button>
     <button class="seal" data-layer="sound" title="Sound">音</button>
@@ -96,6 +100,12 @@
       </div>
     </div>
   </div>
+
+  <!-- Phase 3: itinerary drawer (washi page) and fly-through player. Built by js/trip.js -->
+  <aside id="drawer" aria-label="Itinerary"></aside>
+  <div id="player" aria-label="Fly-through"></div>
+  <!-- Phase 3: symbol tooltip (hover on Mac, long press on iPhone/iPad). Built by js/tips.js -->
+  <div id="tip" role="tooltip" hidden></div>
 
   <div id="fade"></div>
   <div id="loading"><div class="brush"></div><div class="txt">墨を磨る<br><span>grinding the ink</span></div></div>

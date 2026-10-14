@@ -3,6 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { loadWorld, lonLatToWorld, heightAtWorld } from './terrain.js';
 import { Pins, FADE, loadSealFonts, overlaps } from './pins.js';
 import { initUI, Store, REGION_INFO, DOCK_MQ } from './ui.js';
+import { initRoute } from './route.js';
+import { initTrip } from './trip.js';
+import { initTips } from './tips.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#map'), scrollEl = $('#scroll');
@@ -24,7 +27,8 @@ controls.maxPolarAngle = THREE.MathUtils.degToRad(70);   // 70° from straight d
 controls.screenSpacePanning = false;
 
 const prefersStill = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const state = { mist: true, cameraMoves: !prefersStill, sound: false, flying: false, region: 'overview', ready: false };
+let route = null, trip = null;
+const state = { route: true, mist: true, cameraMoves: !prefersStill, sound: false, flying: false, region: 'overview', ready: false };
 
 const tl = new THREE.TextureLoader();
 const tex = (p) => new Promise((res, rej) => tl.load(p, res, undefined, rej));
@@ -84,7 +88,7 @@ function freeRect(withCard = false) {
   };
   const docked = matchMedia(DOCK_MQ).matches;
   const rectOf = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
-  for (const sel of ['#title', '#who', '#seals', '#filters']) { const el = uiEl(sel); if (el && getComputedStyle(el).display !== 'none') cut(rectOf(el)); }
+  for (const sel of ['#title', '#who', '#seals', '#filters', '#player', '#drawer']) { const el = uiEl(sel); if (el && getComputedStyle(el).display !== 'none' && el.getBoundingClientRect().width) cut(rectOf(el)); }
   const cr = uiEl('#crests'); if (cr && !(withCard && docked)) cut(rectOf(cr));
   if (withCard) {
     const card = document.getElementById('card');
@@ -195,7 +199,7 @@ function refreshUiRects(force) {
   const out = [], blk = [], w = canvas.clientWidth, h = canvas.clientHeight, ci = capInset();
   const cap = [{ x: 0, y: 0, w: ci, h }, { x: w - ci, y: 0, w: ci, h }];
   out.push(...cap); blk.push(...cap);
-  for (const sel of ['#title img', '#title .sub', '#region', '#who', '#seals', '#crests', '#filters']) {
+  for (const sel of ['#title img', '#title .sub', '#region', '#who', '#seals', '#crests', '#filters', '#player', '#drawer']) {
     const el = document.querySelector(sel); if (!el || el.hidden) continue;
     if (getComputedStyle(el).opacity === '0') continue;
     const r = el.getBoundingClientRect(); if (!r.width) continue;
@@ -269,7 +273,7 @@ const ui = initUI({
   onRegion: (id) => flyToRegion(id),
   onFilter: (set) => pins && pins.setFilter(set),         // never touches the camera
   onChoice: () => refreshPins(),
-  onWho: () => refreshPins(),
+  onWho: () => { refreshPins(); if (route && route.reload) route.reload(Store.who).then(() => trip && trip.refresh && trip.refresh()).catch(e => console.error(e)); },
   onCardClose: () => pins && pins.select(null),
 });
 
@@ -309,6 +313,7 @@ document.querySelectorAll('#seals .seal').forEach(b => b.addEventListener('click
   const k = b.dataset.layer;
   b.classList.toggle('on');
   const on = b.classList.contains('on');
+  if (k === 'route') { state.route = on; route && route.setVisible(on); }   // never moves the camera
   if (k === 'mist') { state.mist = on; mists.forEach(m => { m.userData.on = on; }); }
   if (k === 'camera') state.cameraMoves = on;
   if (k === 'sound') state.sound = on;  // Phase 6
@@ -346,6 +351,15 @@ async function init() {
   // pins and labels
   pins = new Pins({ scene, camera, canvas, labelHost: scrollEl, places, lonLatToWorld, heightAtWorld });
   refreshPins();
+
+
+  // Phase 3: route layer, itinerary drawer, fly-through player, symbol tooltips
+  const ctx = { THREE, scene, camera, controls, canvas, scrollEl, state, ui, Store, places, placeById,
+    lonLatToWorld, heightAtWorld, groundTarget, sph, aimPose, freeRect, rectCentre, flyToPose, cutToPose, placePose, regionPose,
+    isFlying: () => !!fly, openPlace, REGION_INFO, world };
+  try { route = await initRoute(ctx); route.setVisible(state.route); } catch (e) { console.error('route', e); }
+  try { trip = initTrip(ctx, route); } catch (e) { console.error('trip', e); }
+  try { initTips(); } catch (e) { console.error('tips', e); }
 
   const landmark = (lon, lat) => { const p = lonLatToWorld(lon, lat); p.y = heightAtWorld(p.x, p.z) + 0.6; return p; };
   const fuji = landmark(138.7274, 35.3606), ashi = landmark(139.005, 35.205), owak = landmark(139.0265, 35.2423);
@@ -402,6 +416,8 @@ function loop() {
     mat.uniforms.uTime.value = t; mat.uniforms.uCamPos.value.copy(camera.position);
     mat.uniforms.uFogNear.value = dist * 1.0; mat.uniforms.uFogFar.value = dist * 2.8;
   }
+  if (route) route.update(dt, dist);
+  if (trip) trip.update(now, dt);
   renderer.render(scene, camera);
 
   const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -412,7 +428,8 @@ function loop() {
 window.__map = {
   flyToRegion, openPlace, state, ui, THREE, camera, controls, scene,
   get pins() { return pins; }, get world() { return world; }, get places() { return places; },
-  lonLatToWorld, heightAtWorld, mistFade: MIST_FADE, freeRect,
+  lonLatToWorld, heightAtWorld, mistFade: MIST_FADE, freeRect, flyToPose, cutToPose, placePose, regionPose, aimPose, sph, groundTarget,
+  get route() { return route; }, get trip() { return trip; },
   setWho(w) { Store.setWho(w); ui.setActiveRegion(state.region); refreshPins(); },
 };
 init().catch(err => { console.error(err); $('#loading .txt').innerHTML = '読み込み失敗<br><span>' + err.message + '</span>'; });
