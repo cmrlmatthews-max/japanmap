@@ -1,0 +1,6 @@
+assets/_jpeg-originals/
+_scratch/
+_test/
+node_modules/
+data/tiles/
+.DS_Store

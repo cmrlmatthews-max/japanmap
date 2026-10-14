@@ -1,0 +1,418 @@
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { loadWorld, lonLatToWorld, heightAtWorld } from './terrain.js';
+import { Pins, FADE, loadSealFonts, overlaps } from './pins.js';
+import { initUI, Store, REGION_INFO, DOCK_MQ } from './ui.js';
+
+const $ = (s) => document.querySelector(s);
+const canvas = $('#map'), scrollEl = $('#scroll');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.3, 4000);
+const FOV_TAN = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.035;
+controls.rotateSpeed = 0.45; controls.zoomSpeed = 0.5; controls.panSpeed = 0.5;
+controls.minDistance = 8; controls.maxDistance = 900;
+controls.minPolarAngle = THREE.MathUtils.degToRad(20);   // 20° from straight down
+controls.maxPolarAngle = THREE.MathUtils.degToRad(70);   // 70° from straight down
+controls.screenSpacePanning = false;
+
+const prefersStill = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const state = { mist: true, cameraMoves: !prefersStill, sound: false, flying: false, region: 'overview', ready: false };
+
+const tl = new THREE.TextureLoader();
+const tex = (p) => new Promise((res, rej) => tl.load(p, res, undefined, rej));
+const clamp01 = (t) => Math.min(1, Math.max(0, t));
+const smooth = (a, b, t) => { t = clamp01((t - a) / (b - a)); return t * t * (3 - 2 * t); };
+const easeInOut = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const rad = THREE.MathUtils.degToRad;
+
+// ---------- regions ----------
+const VIEW = { polar: 52, az: 22 };
+const REGIONS = {
+  tokyo:  { lon: 139.745, lat: 35.680, dist: 44, side: 'top' },
+  hakone: { lon: 139.030, lat: 35.230, dist: 42, side: 'bottom' },
+  fuji:   { lon: 138.760, lat: 35.420, dist: 64, side: 'top' },
+  kyoto:  { lon: 135.765, lat: 35.000, dist: 50, side: 'top' },
+  nara:   { lon: 135.835, lat: 34.685, dist: 30, side: 'right' },
+  osaka:  { lon: 135.510, lat: 34.690, dist: 62, side: 'bottom' },
+};
+const OVERVIEW = { lon: 137.57, lat: 35.20, polar: 54, az: 0, span: 770 };
+// Portrait screens: turn the world a quarter so the long Tokyo-Osaka axis runs up the screen like a hanging scroll (Tokyo on top)
+const OVERVIEW_PORTRAIT = { lon: 137.85, polar: 44, az: 270, span: 350 };   // target a little toward Tokyo: the far end is foreshortened
+const isPortrait = () => canvas.clientWidth / canvas.clientHeight < 0.85;
+
+const probe = $('#capProbe');
+const capInset = () => (probe ? probe.getBoundingClientRect().left : 0);
+function overviewDist() {
+  const w = canvas.clientWidth, h = canvas.clientHeight, aspect = w / h;
+  const usable = Math.max(0.3, (w - 2 * (capInset() + (isPortrait() ? 0 : 56))) / w);   // landscape: also keep clear of the seal columns
+  const hTan = FOV_TAN * aspect;
+  if (isPortrait()) {                                       // fit the short axis across and the long axis (foreshortened by the tilt) down
+    const dW = OVERVIEW_PORTRAIT.span / (2 * hTan * usable);
+    const dH = 1.4 * (OVERVIEW.span * Math.cos(rad(OVERVIEW_PORTRAIT.polar)) / 2) / (FOV_TAN * Math.max(0.4, (h - 190) / h));
+    return Math.min(2300, Math.max(380, dW, dH));
+  }
+  return Math.min(2300, Math.max(380, OVERVIEW.span / (2 * hTan * usable)));
+}
+const sph = (dist, polarDeg, azDeg) => new THREE.Vector3(
+  dist * Math.sin(rad(polarDeg)) * Math.sin(rad(azDeg)), dist * Math.cos(rad(polarDeg)), dist * Math.sin(rad(polarDeg)) * Math.cos(rad(azDeg)));
+function groundTarget(lon, lat) { const p = lonLatToWorld(lon, lat); p.y = heightAtWorld(p.x, p.z); return p; }
+
+// ---------- the free map area ----------
+// Fixed UI (seal column, filter row, crests, masthead, the open card) covers parts of the canvas. When the camera flies somewhere,
+// the destination is aimed at the centre of what is left, so a region or a place never lands under a button or a card.
+function uiEl(sel) { const el = document.querySelector(sel); return el && !el.hidden ? el : null; }
+function freeRect(withCard = false) {
+  const w = canvas.clientWidth, h = canvas.clientHeight, ci = capInset();
+  const R = { x0: ci, y0: 0, x1: w - ci, y1: h };
+  const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
+  const PAD = 12;
+  const cut = (b, force) => {                                     // b = { l, t, r, b } of a UI element: trim the free rect on the side that loses least
+    const opts = { left: { ...R, x0: Math.max(R.x0, b.r + PAD) }, right: { ...R, x1: Math.min(R.x1, b.l - PAD) },
+                   top: { ...R, y0: Math.max(R.y0, b.b + PAD) }, bottom: { ...R, y1: Math.min(R.y1, b.t - PAD) } };
+    if (b.r + PAD <= R.x0 || b.l - PAD >= R.x1 || b.b + PAD <= R.y0 || b.t - PAD >= R.y1) return;   // already clear
+    let best = force || null;
+    if (!best) { let ba = -1; for (const k in opts) { const a = area(opts[k]); if (a > ba) { ba = a; best = k; } } }
+    Object.assign(R, opts[best]);
+  };
+  const docked = matchMedia(DOCK_MQ).matches;
+  const rectOf = (el) => { const r = el.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; };
+  for (const sel of ['#title', '#who', '#seals', '#filters']) { const el = uiEl(sel); if (el && getComputedStyle(el).display !== 'none') cut(rectOf(el)); }
+  const cr = uiEl('#crests'); if (cr && !(withCard && docked)) cut(rectOf(cr));
+  if (withCard) {
+    const card = document.getElementById('card');
+    if (docked) { const right = parseFloat(getComputedStyle(card).right) || 0; cut({ l: w - right - card.offsetWidth, t: card.offsetTop, r: w, b: card.offsetTop + card.offsetHeight }, 'right'); }
+    else cut({ l: 0, t: h - card.offsetHeight, r: w, b: h }, 'bottom');
+  }
+  if (R.x1 - R.x0 < 90 || R.y1 - R.y0 < 90) return { x0: ci, y0: 0, x1: w - ci, y1: h };
+  return R;
+}
+// Shift the look-at point (camera orientation and distance unchanged) so ground point P lands on screen point C.
+const aimCam = new THREE.PerspectiveCamera();
+function aimPose(P, offset, C) {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  aimCam.fov = camera.fov; aimCam.aspect = w / h; aimCam.near = 0.3; aimCam.far = 4000; aimCam.updateProjectionMatrix();
+  const T = P.clone(), v = new THREE.Vector3(), o = new THREE.Vector3();
+  const proj = (t) => { aimCam.position.copy(t).add(offset); aimCam.lookAt(t); aimCam.updateMatrixWorld(true); v.copy(P).project(aimCam); return [(v.x * 0.5 + 0.5) * w, (-v.y * 0.5 + 0.5) * h]; };
+  for (let i = 0; i < 6; i++) {
+    const [px, py] = proj(T), ex = C.x - px, ey = C.y - py;
+    if (Math.hypot(ex, ey) < 0.4) break;
+    const d = Math.max(0.5, offset.length() * 0.01);
+    const [ax, ay] = proj(o.copy(T).add(new THREE.Vector3(d, 0, 0))), [bx, by] = proj(o.copy(T).add(new THREE.Vector3(0, 0, d)));
+    const a = (ax - px) / d, c = (ay - py) / d, b = (bx - px) / d, e = (by - py) / d, det = a * e - b * c;
+    if (Math.abs(det) < 1e-9) break;
+    T.x += (ex * e - b * ey) / det; T.z += (a * ey - c * ex) / det;
+  }
+  return { target: T, offset };
+}
+const rectCentre = (r, dy = 0) => ({ x: (r.x0 + r.x1) / 2, y: (r.y0 + r.y1) / 2 + dy });
+
+// Landscape overview: tilt up toward top-down until the land strip fills most of the free height (never past 24 deg, so it still reads as a painted relief)
+const STRIP_DEPTH = 290;                                      // world units the land spans north-south
+function overviewPolar() {
+  if (isPortrait()) return OVERVIEW_PORTRAIT.polar;
+  const w = canvas.clientWidth, usable = Math.max(0.3, (w - 2 * (capInset() + 56)) / w);
+  const ppu = usable * w / OVERVIEW.span, fr = freeRect(false);
+  const c = (0.8 * (fr.y1 - fr.y0)) / (STRIP_DEPTH * ppu);
+  return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(Math.acos(Math.min(1, c))), 24, OVERVIEW.polar);
+}
+function regionPose(id) {
+  if (id === 'overview') {
+    const portrait = isPortrait(), o = portrait ? { ...OVERVIEW, ...OVERVIEW_PORTRAIT } : { ...OVERVIEW, polar: overviewPolar() };
+    const t = groundTarget(o.lon, o.lat); t.y = 0;
+    const offset = sph(overviewDist(), o.polar, o.az);
+    return portrait ? { target: t, offset } : aimPose(t, offset, rectCentre(freeRect(false)));
+  }
+  const r = REGIONS[id], offset = sph(r.dist, VIEW.polar, VIEW.az);
+  return aimPose(groundTarget(r.lon, r.lat), offset, rectCentre(freeRect(false)));
+}
+
+// ---------- slow, deliberate camera moves ----------
+let fly = null;
+const fadeEl = $('#fade');
+function paperFade() {                                       // instant cut + 0.6 s paper cross-fade
+  fadeEl.style.transition = 'none'; fadeEl.style.opacity = '0.95'; void fadeEl.offsetWidth;
+  fadeEl.style.transition = 'opacity .6s ease-in-out'; fadeEl.style.opacity = '0';
+}
+function settleControls() {                                  // flush any drag momentum so it cannot nudge the new pose
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+}
+function cutToPose(pose) {
+  fly = null; state.flying = false; controls.enabled = true;
+  controls.target.copy(pose.target); camera.position.copy(pose.target).add(pose.offset); camera.lookAt(pose.target);
+  settleControls(); paperFade();
+}
+function flyToPose(pose, secs, { arc = 0.3, from = null } = {}) {
+  if (!state.cameraMoves) { cutToPose(pose); return; }
+  settleControls();
+  const t0 = controls.target.clone();
+  const s0 = new THREE.Spherical().setFromVector3(from || camera.position.clone().sub(t0));
+  const s1 = new THREE.Spherical().setFromVector3(pose.offset);
+  let dth = s1.theta - s0.theta; dth = ((dth + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
+  const travel = Math.hypot(pose.target.x - t0.x, pose.target.z - t0.z);
+  fly = { start: performance.now(), dur: secs * 1000, t0, t1: pose.target.clone(), s0, s1, dth, lift: travel * arc + 0.1 * Math.abs(s1.radius - s0.radius) };
+  state.flying = true; controls.enabled = false;
+}
+const _off = new THREE.Vector3(), _s = new THREE.Spherical();
+function stepFlight(now) {
+  const f = fly, k = easeInOut(clamp01((now - f.start) / f.dur));
+  controls.target.lerpVectors(f.t0, f.t1, k);
+  const r = Math.exp(THREE.MathUtils.lerp(Math.log(f.s0.radius), Math.log(f.s1.radius), k)) + f.lift * Math.sin(Math.PI * k);  // calm lift and descent
+  _s.set(r, THREE.MathUtils.lerp(f.s0.phi, f.s1.phi, k), f.s0.theta + f.dth * k);
+  _off.setFromSpherical(_s);
+  camera.position.copy(controls.target).add(_off); camera.lookAt(controls.target);
+  if (k >= 1) { fly = null; state.flying = false; controls.enabled = true; settleControls(); }
+}
+
+function flyToRegion(id) {
+  if (!regionExists(id)) return;
+  ui.closeCard(); state.region = id; ui.setActiveRegion(id);
+  flyToPose(regionPose(id), 3.5, { arc: 0.3 });
+}
+const regionExists = (id) => id === 'overview' || !!REGIONS[id];
+
+// ---------- projected labels: landmarks and region names ----------
+const marks = [];                                           // { el, pos, kind, key }
+function addMark(kind, kanji, yomi, pos, key, side = 'top') {
+  const el = document.createElement('div');
+  el.className = (kind === 'region' ? 'rlabel' : 'landmark') + ' side-' + side;
+  el.innerHTML = `<span class="k">${kanji}</span><span class="y">${yomi}</span>` + (kind === 'region' ? '<b class="dot"></b>' : '');
+  scrollEl.appendChild(el);
+  marks.push({ el, pos, kind, key, side, w: 0, h: 0, on: false });
+}
+// screen rects of fixed UI (title, seals, crests, caps...) that map labels should keep clear of
+let uiRects = [], pinBlockers = [], uiRectsAt = -1e9;
+function refreshUiRects(force) {
+  const now = performance.now();
+  if (!force && now - uiRectsAt < 100) return uiRects; uiRectsAt = now;
+  const out = [], blk = [], w = canvas.clientWidth, h = canvas.clientHeight, ci = capInset();
+  const cap = [{ x: 0, y: 0, w: ci, h }, { x: w - ci, y: 0, w: ci, h }];
+  out.push(...cap); blk.push(...cap);
+  for (const sel of ['#title img', '#title .sub', '#region', '#who', '#seals', '#crests', '#filters']) {
+    const el = document.querySelector(sel); if (!el || el.hidden) continue;
+    if (getComputedStyle(el).opacity === '0') continue;
+    const r = el.getBoundingClientRect(); if (!r.width) continue;
+    const q = { x: r.left - 2, y: r.top - 2, w: r.width + 4, h: r.height + 4 };
+    out.push(q); if (sel !== '#region') blk.push(q);               // pins may sit under the region caption (it is a faint wash), not under buttons
+  }
+  const c = document.getElementById('card'); if (ui?.cardOpen) { const r = c.getBoundingClientRect(); const q = { x: r.left, y: r.top, w: r.width, h: r.height }; out.push(q); blk.push(q); }
+  pinBlockers = blk;
+  return (uiRects = out);
+}
+const _p = new THREE.Vector3();
+function updateMarks(dist, w, h) {
+  const landFade = 1 - smooth(FADE.pinsFull, FADE.pinsGone, dist);
+  const regFade = smooth(FADE.regionsFrom, FADE.regionsFull, dist);
+  const placed = [], obstacles = [], ui_ = refreshUiRects();
+  const order = marks.slice().sort((a, b) => (a.kind === 'region') - (b.kind === 'region'));
+  for (const m of order) {
+    const a = m.kind === 'region' ? regFade : landFade;
+    let show = a > 0.02;
+    let x = 0, y = 0;
+    if (show) {
+      _p.copy(m.pos).project(camera);
+      show = _p.z < 1 && _p.x > -1.1 && _p.x < 1.1 && _p.y > -1.1 && _p.y < 1.1;
+      x = (_p.x * 0.5 + 0.5) * w; y = (-_p.y * 0.5 + 0.5) * h;
+    }
+    if (show) {
+      if (!m.w) { m.w = m.el.offsetWidth; m.h = m.el.offsetHeight; }
+      let rx = x - m.w / 2, ry = y - m.h - 6;
+      if (m.side === 'right') { rx = x + 9; ry = y - m.h / 2; } else if (m.side === 'left') { rx = x - 9 - m.w; ry = y - m.h / 2; } else if (m.side === 'bottom') ry = y + 8;
+      const r = { x: rx, y: ry, w: m.w, h: m.h };
+      if (placed.some(o => overlaps(r, o, 4)) || ui_.some(o => overlaps(r, o, 0))) show = false;
+      else { placed.push(r); if (m.kind === 'landmark') obstacles.push(r); m.el.style.transform = `translate(${r.x.toFixed(1)}px,${r.y.toFixed(1)}px)`; m.el.style.setProperty('--dx', (x - r.x).toFixed(1) + 'px'); m.el.style.setProperty('--dy', (y - r.y).toFixed(1) + 'px'); }
+    }
+    if (show !== m.on) { m.on = show; m.el.classList.toggle('show', show); }
+    if (show) m.el.style.setProperty('--o', a.toFixed(2));
+  }
+  return obstacles;
+}
+
+// ---------- mist ----------
+const mists = [];
+// Soft washes, not shapes: tinted toward paper (never pure white), faded toward the band ends and edges, and faded out with camera distance
+// (hard-edged shards read badly up close; at overview the bands are too small to matter). Phase 4 redoes mist properly.
+const mistVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+const mistFrag = `precision highp float;
+uniform sampler2D uMap; uniform vec3 uPaper; uniform float uOpacity;
+varying vec2 vUv;
+void main(){
+  vec4 t = texture2D(uMap, vUv);
+  float ends = smoothstep(0.0, 0.38, vUv.x) * (1.0 - smoothstep(0.62, 1.0, vUv.x));
+  float sides = smoothstep(0.0, 0.3, vUv.y) * (1.0 - smoothstep(0.7, 1.0, vUv.y));
+  float a = t.a * ends * ends * sides * uOpacity;
+  gl_FragColor = vec4(mix(uPaper, t.rgb, 0.18), a);
+}`;
+const MIST_FADE = { from: 18, full: 40, outFrom: 260, outTo: 440 };   // camera distance: thin in the closest views, full at region range, gone far out
+function addMist(mistTex, pos, y, scale, rot) {
+  const mat = new THREE.ShaderMaterial({ vertexShader: mistVert, fragmentShader: mistFrag, transparent: true, depthWrite: false,
+    uniforms: { uMap: { value: mistTex }, uPaper: { value: new THREE.Color('#F5EFE0') }, uOpacity: { value: 0.3 } } });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
+  m.scale.set(scale * 8, scale * 0.8, 1); m.position.set(pos.x, y, pos.z); m.rotation.y = rot; m.renderOrder = 5;
+  m.userData = { x: pos.x, drift: 0.4 + Math.random() * 0.4, phase: Math.random() * 6, on: true };
+  scene.add(m); mists.push(m);
+}
+
+// ---------- state shared with the UI ----------
+let pins = null, world = null, places = [];
+const placeById = new Map();
+const refreshPins = () => pins && pins.setChoices(Store.mine());
+
+const ui = initUI({
+  onRegion: (id) => flyToRegion(id),
+  onFilter: (set) => pins && pins.setFilter(set),         // never touches the camera
+  onChoice: () => refreshPins(),
+  onWho: () => refreshPins(),
+  onCardClose: () => pins && pins.select(null),
+});
+
+// aim the picked place into the free map area beside / above the open card (and clear of the seals, crests and filter row)
+function placePose(pin) {
+  const dist = 34, azDeg = THREE.MathUtils.radToDeg(Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z));
+  return aimPose(pin, sph(dist, 45, azDeg), rectCentre(freeRect(true), 14));   // +14: the seal sits ~27 px above the ground point
+}
+
+function openPlace(id) {
+  const p = placeById.get(id); if (!p || !pins) return;
+  const g = pins.worldPos(id);
+  ui.openCard(p); pins.select(id); ui.setActiveRegion(p.region);
+  if (state.cameraMoves) flyToPose(placePose(g), 2.0, { arc: 0.25 }); else pins.pulse(id);
+}
+
+// ---------- tap vs drag ----------
+const down = new Map(); let tap = null;
+canvas.addEventListener('pointerdown', (e) => {
+  down.set(e.pointerId, true);
+  tap = down.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), ok: true } : (tap && (tap.ok = false), tap);
+});
+canvas.addEventListener('pointermove', (e) => { if (tap && tap.ok && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) >= 8) tap.ok = false; });
+const endPointer = (e) => {
+  down.delete(e.pointerId);
+  if (!tap) return;
+  const t = tap; if (!down.size) tap = null;
+  if (e.type !== 'pointerup' || !t.ok || performance.now() - t.t > 350 || !pins) return;
+  const r = canvas.getBoundingClientRect();
+  const hit = pins.pick(e.clientX - r.left, e.clientY - r.top);
+  if (hit) openPlace(hit.id); else if (ui.cardOpen) ui.closeCard();
+};
+canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
+
+// ---------- layer seals ----------
+document.querySelectorAll('#seals .seal').forEach(b => b.addEventListener('click', () => {
+  const k = b.dataset.layer;
+  b.classList.toggle('on');
+  const on = b.classList.contains('on');
+  if (k === 'mist') { state.mist = on; mists.forEach(m => { m.userData.on = on; }); }
+  if (k === 'camera') state.cameraMoves = on;
+  if (k === 'sound') state.sound = on;  // Phase 6
+}));
+
+function resize() {
+  refreshUiRects(true);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(900, overviewDist() * 1.1);
+}
+addEventListener('resize', resize);
+
+// ---------- main ----------
+async function init() {
+  const q = new URLSearchParams(location.search);
+  const [washi, mistTex, placesJson] = await Promise.all([
+    tex('assets/web/washi.jpg'), tex('assets/web/mist.png'),
+    fetch('data/places.json').then(r => r.json()).catch(() => []),
+    loadSealFonts(),
+  ]);
+  places = Array.isArray(placesJson) ? placesJson : [];
+  places.forEach(p => placeById.set(p.id, p));
+
+  world = await loadWorld({
+    baseUrl: 'data/central-japan-z9.bin',
+    patchUrls: ['data/hakone-fuji-z11.bin', 'data/tokyo-z11.bin', 'data/kansai-z11.bin'],
+    washiTex: washi,
+  });
+  if (q.has('simple')) world.group.traverse(o => { if (o.isMesh) o.material = new THREE.MeshNormalMaterial(); });
+  scene.add(world.group);
+  if (q.has('seam')) world.materials.slice(1).forEach(m => m.uniforms.uTint.value.set(1, 0.15, 0.15));   // debug: tint the patches
+
+  // pins and labels
+  pins = new Pins({ scene, camera, canvas, labelHost: scrollEl, places, lonLatToWorld, heightAtWorld });
+  refreshPins();
+
+  const landmark = (lon, lat) => { const p = lonLatToWorld(lon, lat); p.y = heightAtWorld(p.x, p.z) + 0.6; return p; };
+  const fuji = landmark(138.7274, 35.3606), ashi = landmark(139.005, 35.205), owak = landmark(139.0265, 35.2423);
+  addMark('landmark', '富士山', 'ふじさん', fuji);
+  addMark('landmark', '芦ノ湖', 'あしのこ', ashi);
+  addMark('landmark', '大涌谷', 'おおわくだに', owak);
+  for (const id of ['tokyo', 'kyoto', 'osaka', 'fuji', 'hakone', 'nara']) {
+    const r = REGIONS[id], p = groundTarget(r.lon, r.lat); p.y += 1.2;
+    addMark('region', REGION_INFO[id].kanji, REGION_INFO[id].yomi, p, id, REGIONS[id].side);
+  }
+
+  // mist bands around the Fuji skirt and the Hakone caldera
+  if (!q.has('nomist')) addMist(mistTex, { x: fuji.x + 6, z: fuji.z + 12 }, 2.4, 3.6, 0.2);
+  addMist(mistTex, { x: fuji.x - 14, z: fuji.z - 4 }, 3.0, 3.0, -0.6);
+  addMist(mistTex, { x: ashi.x - 4, z: ashi.z - 8 }, 1.7, 2.6, 0.9);
+  addMist(mistTex, { x: owak.x + 9, z: owak.z + 3 }, 2.1, 2.2, -1.3);
+
+  resize();
+  // intro: slow flight down to the overview of central Japan
+  state.region = 'overview'; ui.setActiveRegion('overview');
+  const end = regionPose('overview');
+  if (state.cameraMoves) {
+    const startOff = sph(end.offset.length() * 1.5, 22, 16);
+    controls.target.copy(end.target); camera.position.copy(end.target).add(startOff); camera.lookAt(end.target);
+    flyToPose(end, 4, { arc: 0, from: startOff });
+  } else { controls.target.copy(end.target); camera.position.copy(end.target).add(end.offset); camera.lookAt(end.target); }
+
+  renderer.render(scene, camera);
+  $('#loading').classList.add('done');
+  state.ready = true;
+  if (!Store.who) setTimeout(() => ui.showWho(), 600);
+  loop();
+}
+
+const clock = new THREE.Clock();
+let lastNearFar = 0;
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, now = performance.now();
+  if (fly) stepFlight(now);
+  if (!fly) {
+    controls.update();
+    const b = world.bounds, m = 12;                      // keep the pan inside the painted world
+    const cx = THREE.MathUtils.clamp(controls.target.x, b.x0 + m, b.x1 - m), cz = THREE.MathUtils.clamp(controls.target.z, b.z0 + m, b.z1 - m);
+    if (cx !== controls.target.x || cz !== controls.target.z) { const dx = cx - controls.target.x, dz = cz - controls.target.z; controls.target.x = cx; controls.target.z = cz; camera.position.x += dx; camera.position.z += dz; }
+  }
+  const dist = camera.position.distanceTo(controls.target);
+  const near = Math.max(0.12, dist * 0.02);                // tight depth range keeps patch and base from z-fighting
+  if (Math.abs(near - lastNearFar) > near * 0.05) { camera.near = near; camera.far = 4000; camera.updateProjectionMatrix(); lastNearFar = near; }
+
+  const mistK = smooth(MIST_FADE.from, MIST_FADE.full, dist) * (1 - smooth(MIST_FADE.outFrom, MIST_FADE.outTo, dist));
+  for (const m of mists) { m.visible = m.userData.on && mistK > 0.01; m.material.uniforms.uOpacity.value = 0.3 * mistK; m.position.x = m.userData.x + Math.sin(t * 0.05 * m.userData.drift + m.userData.phase) * 3.0; m.lookAt(camera.position.x, m.position.y, camera.position.z); }
+  for (const mat of world.materials) {
+    mat.uniforms.uTime.value = t; mat.uniforms.uCamPos.value.copy(camera.position);
+    mat.uniforms.uFogNear.value = dist * 1.0; mat.uniforms.uFogFar.value = dist * 2.8;
+  }
+  renderer.render(scene, camera);
+
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const obstacles = updateMarks(dist, w, h);
+  pins.update({ dt, dist, w, h, obstacles: obstacles.concat(refreshUiRects()), blockers: pinBlockers });
+}
+
+window.__map = {
+  flyToRegion, openPlace, state, ui, THREE, camera, controls, scene,
+  get pins() { return pins; }, get world() { return world; }, get places() { return places; },
+  lonLatToWorld, heightAtWorld, mistFade: MIST_FADE, freeRect,
+  setWho(w) { Store.setWho(w); ui.setActiveRegion(state.region); refreshPins(); },
+};
+init().catch(err => { console.error(err); $('#loading .txt').innerHTML = '読み込み失敗<br><span>' + err.message + '</span>'; });

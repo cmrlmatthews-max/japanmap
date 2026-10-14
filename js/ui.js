@@ -1,0 +1,192 @@
+// DOM UI: saved choices, region crests, category filter, info card, "who is this?".
+import { CATS, CAT_ORDER } from './pins.js';
+
+export const REGION_INFO = {
+  overview: { kanji: '中部・関西', yomi: 'ちゅうぶ・かんさい', en: 'Central Japan' },
+  tokyo:    { kanji: '東京', yomi: 'とうきょう', en: 'Tokyo' },
+  hakone:   { kanji: '箱根', yomi: 'はこね',     en: 'Hakone' },
+  fuji:     { kanji: '富士', yomi: 'ふじ',       en: 'Mount Fuji' },
+  kyoto:    { kanji: '京都', yomi: 'きょうと',   en: 'Kyoto' },
+  nara:     { kanji: '奈良', yomi: 'なら',       en: 'Nara' },
+  osaka:    { kanji: '大阪', yomi: 'おおさか',   en: 'Osaka' },
+};
+// the card docks on the right on iPad/desktop and on iPhone landscape; otherwise it is a bottom sheet
+export const DOCK_MQ = '(min-width: 900px), (max-height: 520px) and (orientation: landscape)';
+const WHO = { cade: { initial: 'ケ', name: 'Cade' }, casey: { initial: 'シ', name: 'Casey' } };
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+// ---------- saved state: localStorage "jmap.v1" ----------
+const KEY = 'jmap.v1';
+export const Store = {
+  data: { who: null, choices: { cade: {}, casey: {} } },
+  load() {
+    try {
+      const j = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (j && typeof j === 'object') {
+        if (j.who === 'cade' || j.who === 'casey') this.data.who = j.who;
+        for (const w of ['cade', 'casey']) if (j.choices && typeof j.choices[w] === 'object' && j.choices[w]) this.data.choices[w] = j.choices[w];
+      }
+    } catch (e) { /* private mode or bad JSON: start empty */ }
+    return this;
+  },
+  save() { try { localStorage.setItem(KEY, JSON.stringify(this.data)); } catch (e) { /* ignore */ } },
+  get who() { return this.data.who; },
+  setWho(w) { this.data.who = w; this.save(); },
+  mine() { return (this.data.who && this.data.choices[this.data.who]) || {}; },
+  choice(id) { return this.mine()[id]?.c || null; },
+  setChoice(id, c) {
+    if (!this.data.who) return;
+    const m = this.data.choices[this.data.who];
+    if (c) m[id] = { c, t: new Date().toISOString() }; else delete m[id];
+    this.save();
+  },
+};
+
+const cap = (s) => String(s).replace(/^./, (c) => c.toUpperCase());
+function fmtVal(v) {
+  if (v == null || v === '' || v === false) return '';
+  if (Array.isArray(v)) return v.map(fmtVal).filter(Boolean).join(' · ');
+  if (typeof v === 'object') return fmtVal(v.name || v.text || v.value || '');
+  return String(v);
+}
+function normSources(src) {
+  const arr = Array.isArray(src) ? src : (src ? [src] : []);
+  const out = [];
+  for (const s of arr) {
+    let url = '', label = '';
+    if (typeof s === 'string') { url = /^https?:/i.test(s) ? s : ''; label = url ? '' : s; }
+    else if (s && typeof s === 'object') { url = s.url || s.href || ''; label = s.title || s.name || s.label || ''; }
+    if (url) { try { label = label || new URL(url).hostname.replace(/^www\./, ''); } catch (e) { url = ''; } }
+    if (label || url) out.push({ url, label: label || url });
+  }
+  return out;
+}
+
+export function initUI(cb) {
+  Store.load();
+  const ui = { Store, cardPlace: null, cardOpen: false };
+  const body = document.body;
+
+  // ----- region crests -----
+  const crests = $$('#crests .crest');
+  ui.setActiveRegion = (id) => {
+    crests.forEach(b => b.classList.toggle('active', b.dataset.region === id));
+    const r = REGION_INFO[id]; if (!r) return;
+    $('#region .kanji').textContent = r.kanji; $('#region .yomi').textContent = r.yomi; $('#region .en').textContent = r.en;
+  };
+  crests.forEach(b => b.addEventListener('click', () => cb.onRegion(b.dataset.region)));
+
+  // ----- category filter -----
+  const catBtns = $$('#filters .seal');
+  catBtns.forEach(b => b.addEventListener('click', () => {
+    b.classList.toggle('on');
+    cb.onFilter(new Set(catBtns.filter(x => x.classList.contains('on')).map(x => x.dataset.cat)));
+  }));
+
+  // ----- who is this -----
+  const whoBtn = $('#who'), whoPick = $('#whoPick');
+  const refreshWho = () => {
+    const w = Store.who;
+    whoBtn.hidden = !w;
+    if (w) { $('span', whoBtn).textContent = WHO[w].initial; whoBtn.title = `${WHO[w].name} — tap to switch`; whoBtn.setAttribute('aria-label', whoBtn.title); }
+    $$('.who-btn', whoPick).forEach(b => b.classList.toggle('cur', b.dataset.who === w));
+  };
+  ui.showWho = () => { refreshWho(); whoPick.hidden = false; requestAnimationFrame(() => whoPick.classList.add('open')); };
+  const hideWho = () => { whoPick.classList.remove('open'); setTimeout(() => { whoPick.hidden = true; }, 350); };
+  $$('.who-btn', whoPick).forEach(b => b.addEventListener('click', () => {
+    Store.setWho(b.dataset.who); refreshWho(); hideWho(); cb.onWho(Store.who);
+    if (ui.cardPlace) fillCard(ui.cardPlace);            // buttons reflect the new person
+  }));
+  whoPick.addEventListener('click', (e) => { if (e.target === whoPick && Store.who) hideWho(); });
+  whoBtn.addEventListener('click', () => ui.showWho());
+  refreshWho();
+
+  // ----- info card -----
+  const card = $('#card'), box = $('.scrollbox', card);
+  const fillCard = (p) => {
+    const cat = CATS[p.category] || { kanji: '?', en: p.category };
+    $('.cseal', card).textContent = cat.kanji;
+    $('.cname', card).textContent = cat.en;
+    const st = $('.status', card);
+    st.textContent = p.status === 'core' ? '定番 Core' : '提案 Suggestion';
+    st.className = 'status ' + (p.status === 'core' ? 'core' : 'sug');
+    $('.k', card).textContent = p.kanji || '';
+    $('.y', card).textContent = p.yomi || '';
+    $('.en', card).textContent = p.name || '';
+    $('.reg', card).textContent = REGION_INFO[p.region]?.en || cap(p.region || '');
+    $('.why', card).textContent = p.why || '';
+    const rows = $('.rows', card); rows.textContent = '';
+    const add = (jp, en, v) => { v = fmtVal(v); if (!v) return; const d = document.createElement('div'); d.className = 'row';
+      d.innerHTML = '<dt><span class="jp"></span><span class="en"></span></dt><dd></dd>';
+      d.querySelector('.jp').textContent = jp; d.querySelector('.en').textContent = en; d.querySelector('dd').textContent = v; rows.appendChild(d); };
+    add('建築家', 'Architect', p.architect);
+    add('時', 'Best time', p.best);
+    add('予約', 'Booking', p.booking);
+    if ((p.category === 'ryokan' || p.category === 'onsen') && p.tier) add('価格', 'Price tier', cap(p.tier));
+    rows.hidden = !rows.children.length;
+    const c = Store.choice(p.id);
+    const addB = $('.btn.add', card), passB = $('.btn.pass', card);
+    addB.textContent = c === 'add' ? 'In trip — undo' : 'Add to trip';
+    passB.textContent = c === 'pass' ? 'Passed — undo' : 'Pass';
+    addB.classList.toggle('on', c === 'add'); passB.classList.toggle('on', c === 'pass');
+    const src = $('.src', card); src.textContent = '';
+    const list = normSources(p.sources);
+    src.hidden = !list.length;
+    if (list.length) {
+      src.append('Sources: ');
+      list.forEach((s, i) => {
+        if (i) src.append(' · ');
+        if (s.url) { const a = document.createElement('a'); a.href = s.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = s.label; src.append(a); }
+        else src.append(s.label);
+      });
+    }
+  };
+  const choose = (c) => {
+    const p = ui.cardPlace; if (!p) return;
+    if (!Store.who) { ui.showWho(); return; }
+    Store.setChoice(p.id, Store.choice(p.id) === c ? null : c);
+    fillCard(p); cb.onChoice(p.id);
+  };
+  $('.btn.add', card).addEventListener('click', () => choose('add'));
+  $('.btn.pass', card).addEventListener('click', () => choose('pass'));
+
+  ui.openCard = (p) => {
+    ui.cardPlace = p; fillCard(p); box.scrollTop = 0;
+    card.style.transform = '';
+    card.classList.add('open'); card.setAttribute('aria-hidden', 'false'); body.classList.add('card-open');
+    ui.cardOpen = true;
+  };
+  ui.closeCard = () => {
+    if (!ui.cardOpen) return;
+    ui.cardOpen = false; card.style.transform = ''; card.classList.remove('open', 'dragging');
+    card.setAttribute('aria-hidden', 'true'); body.classList.remove('card-open');
+    const id = ui.cardPlace?.id; ui.cardPlace = null; cb.onCardClose(id);
+  };
+  $('.x', card).addEventListener('click', () => ui.closeCard());
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') ui.closeCard(); });
+
+  // swipe down to close (bottom-sheet layouts only)
+  let drag = null;
+  const docked = () => matchMedia(DOCK_MQ).matches;
+  card.addEventListener('touchstart', (e) => {
+    if (docked() || e.touches.length !== 1) return;
+    drag = { y0: e.touches[0].clientY, dy: 0, t0: performance.now(), ok: box.scrollTop <= 0 };
+  }, { passive: true });
+  card.addEventListener('touchmove', (e) => {
+    if (!drag || !drag.ok) return;
+    const dy = e.touches[0].clientY - drag.y0;
+    if (dy <= 0) { drag.dy = 0; card.style.transform = ''; return; }
+    drag.dy = dy; card.classList.add('dragging'); card.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  const endDrag = () => {
+    if (!drag) return;
+    const d = drag; drag = null; card.classList.remove('dragging');
+    const v = d.dy / Math.max(1, performance.now() - d.t0);
+    if (d.dy > 90 || (d.dy > 30 && v > 0.5)) ui.closeCard(); else card.style.transform = '';
+  };
+  card.addEventListener('touchend', endDrag); card.addEventListener('touchcancel', endDrag);
+
+  return ui;
+}

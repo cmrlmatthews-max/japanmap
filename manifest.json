@@ -1,0 +1,21 @@
+{
+  "name": "日本の旅 — Journey Through Japan",
+  "short_name": "日本の旅",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F5EFE0",
+  "theme_color": "#F5EFE0",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "assets/web/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/web/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
