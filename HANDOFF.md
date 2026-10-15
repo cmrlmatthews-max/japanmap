@@ -1,11 +1,11 @@
 # HANDOFF — Journey Through Japan (日本の旅) 3D map
 
 Read this first in a new chat. It holds the state, the decisions, and the working method.
-Last update: 2026-10-14, Phase 3 plus the English-first redesign. The app is live on GitHub Pages.
+Last update: 2026-10-15, the flat map redesign (2D default, 3D stamp, phone bottom bar, art). The app is live on GitHub Pages.
 
 ## Project in one paragraph
 
-An interactive 3D map of central Japan in sumi-e (ink wash) style, for Cade and Casey's fall 2027 honeymoon. It runs as a Home Screen web app on iPhone and iPad. It uses Three.js and is hosted on GitHub Pages. Six regions: Tokyo, Hakone, Mount Fuji area, Kyoto, Nara, Osaka. Full plan: `japan-3d-map-concept.md`.
+An interactive map of Japan in sumi-e (ink wash) style, for Cade and Casey's fall 2027 honeymoon. It opens as a flat (2D) map of central Japan with the trip route on it. A "3D" stamp tilts the same scene up into the painted relief. It runs as a Home Screen web app on iPhone and iPad. It uses Three.js and is hosted on GitHub Pages. Six regions: Tokyo, Hakone, Mount Fuji area, Kyoto, Nara, Osaka. Full plan: `japan-3d-map-concept.md`. The flat map spec: `flat-map-plan.md`.
 
 ## Where things are
 
@@ -14,12 +14,17 @@ The local folder on the Mac is `japan-3d-map`. The GitHub repo is `japanmap`. Th
 ```
 japan-3d-map/
 ├── HANDOFF.md                 ← this file
-├── japan-3d-map-concept.md    ← vision, style B2, layers, phases, decisions, Phase 1 and 2 notes
+├── japan-3d-map-concept.md    ← vision, style B2, layers, phases, decisions, phase notes
+├── flat-map-plan.md           ← the flat map spec (2D default, 3D stamp, phone bar, art): what was built on 2026-10-15
 ├── places-and-data.md         ← first place list, transit, data sources, foliage dates, fonts (SUPERSEDED for coordinates by data/places.json)
 ├── gemini-prompts.md          ← image prompts + status table of what was generated
 ├── index.html, css/style.css, manifest.json
-├── sw.js                      ← offline cache, name 'nihon-no-tabi-v5'. Bump the version when a cached file changes.
-├── js/app.js                  ← renderer, camera, region flights, place fly-to, free-area aiming, labels, mist
+├── sw.js                      ← offline cache, name 'nihon-no-tabi-v6'. Bump the version when a cached file changes.
+├── js/app.js                  ← renderer, ONE camera with two projections (2D orthographic blend, 3D perspective), region flights, place fly-to, free-area aiming, labels, mist
+├── js/flatmap.js              ← flat map layers under the terrain: sea wash with wave tile, land sheet, coast ink ribbon, Lake Biwa
+├── js/inset.js                ← the map key: a small Japan with the current view framed in vermilion
+├── js/marker.js               ← the koi that swims along the route in the fly-through
+├── js/art.js                  ← ink paintings on the sea (data/art.json)
 ├── js/terrain.js              ← world frame, file loaders, base and patch meshes, lonLatToWorld(), heightAtWorld()
 ├── js/ink-shader.js           ← ShaderMaterial: height bands, dry-brush streaks, contours, coast, washi grain, edge fade, patch cut-outs
 ├── js/pins.js                 ← canvas hanko seals, pin sprites, labels, fade by distance, overlap culling, tap picking
@@ -27,8 +32,8 @@ japan-3d-map/
 ├── js/route.js                ← Phase 3: route layer (ink-brush ribbons on the terrain), faint rail network, station ticks
 ├── js/trip.js                 ← Phase 3: itinerary drawer (washi page) and fly-through player (play, pause, scrub)
 ├── js/tips.js                 ← Phase 3: help tooltips in English (hover on Mac, long press on iPhone and iPad)
-├── js/icons.js                ← ink-brush pictogram set (24 icons), red stamp builder, PNG override hook (ICON_ART)
-├── css/route.css, css/trip.css, css/tips.css ← Phase 3 styles, one file per module
+├── js/icons.js                ← ink-brush pictogram set (28 icons), red stamp builder, PNG override hook (ICON_ART)
+├── css/route.css, css/trip.css, css/tips.css, css/inset.css ← styles, one file per module
 ├── data/central-japan-z9.bin  ← base terrain, z9, 2048x768
 ├── data/hakone-fuji-z11.bin   ← patch, z11, 1280x1280
 ├── data/tokyo-z11.bin         ← patch, z11, 1024x768
@@ -37,11 +42,15 @@ japan-3d-map/
 ├── data/rail.geojson          ← 11 rail lines and 21 stations from OSM (23 KB). Built by tools/build-rail.py.
 ├── data/itinerary-cade.json   ← Cade's day plan. Built by tools/build-itinerary.py.
 ├── data/itinerary-casey.json  ← Casey's day plan (starts as a copy of Cade's).
+├── data/japan-coast.json      ← all of Japan: 69 land rings, Lake Biwa, a coarse inset outline (Natural Earth 10m, public domain). Built by tools/build-coast.py.
+├── data/art.json              ← where the five sea paintings sit (lon, lat, km, rot, opacity)
 ├── itinerary-draft.md         ← the starter plan in readable form, with the stations table
 ├── assets/*.png               ← keyed art assets, originals (see gemini-prompts.md status table)
-├── assets/web/                ← web copies the app loads: washi, mist, card background, caps, title, 6 crests, 3 icons (1.7 MB)
+├── assets/web/                ← web copies the app loads: washi, mist, card background, caps, title, 6 crests, 3 icons, wave tile, fuji-ink, 5 art-*.png, koi-marker.png (3.9 MB)
 ├── assets/_jpeg-originals/    ← raw Gemini downloads (gitignored)
-├── tools/key-magenta.py       ← magenta key → RGBA PNG
+├── tools/key-magenta.py       ← magenta key → RGBA PNG (for art with colour)
+├── tools/ink-alpha.py         ← grey ink painting → ink on transparent (alpha = darkness). Use for the sumi-e art.
+├── tools/build-coast.py       ← Natural Earth 10m → data/japan-coast.json
 ├── tools/build-rail.py        ← _scratch/rail-raw*.json → data/rail.geojson (Dijkstra per line, Douglas-Peucker, station snap)
 ├── tools/build-itinerary.py   ← the plan as Python data → both itinerary files, with checks
 ├── _scratch/                  ← screenshots, test images (gitignored)
@@ -49,7 +58,7 @@ japan-3d-map/
 └── .gitignore                 ← assets/_jpeg-originals/, _scratch/, _test/, node_modules/, data/tiles/, .DS_Store
 ```
 
-The `data/` folder is 11 MB. The `assets/web/` folder is 1.7 MB. The total is far below the 25 MB budget.
+The `data/` folder is 11 MB. The `assets/web/` folder is 3.9 MB. The total is far below the 25 MB budget.
 
 ## Data
 
@@ -119,6 +128,7 @@ Notes to recheck before the trip:
 
 ## Decisions already made (do not re-ask)
 
+- **Flat map first (2026-10-15, Cade).** The map opens flat (2D), north up, framed on central Japan, on every device. The 3D view is a stamp in the layer column. A small key of all Japan sits bottom right. No rollers on the phone (plain washi page with a thin ink rule); iPad landscape keeps the handscroll. One bottom bar on the phone with Regions, Filters, Layers, Trip. The full route shows at all times in 2D with day stamps. The koi is the fly-through marker. Sea art: great wave with Fuji, koi pair, crane, pine, kabuto, all grey ink at 36 to 44 percent, under the land, gone at close zoom. See `flat-map-plan.md`.
 - **English first (2026-10-14, Cade).** Cade reads no Japanese. All readable text is English. Red stamps hold ink pictograms (js/icons.js), not kanji. The only Japanese in the UI: one small grey kanji line on the place card, the 日本の旅 title artwork, and the title tooltip that explains it. This replaces the earlier "kanji plus hiragana readings" rule.
 - Icons are drawn in code for now. Cade may switch to painted Gemini icons later: put `assets/web/icons/<name>.png` in place and register it in `ICON_ART` (see the top of js/icons.js). Graphics are very important: the app is an art piece.
 
@@ -149,7 +159,8 @@ Notes to recheck before the trip:
 | 1 Paper and terrain | Done. Hakone–Fuji terrain, ink shader, scroll frame, labels, mist. 190 fps in Chrome. Screenshot: `_scratch/phase1-screenshot.jpg` |
 | 2 Places and pins | Done 2026-10-13. Live on GitHub Pages. Not yet tested on a real iPhone or iPad. |
 | 3 Route and fly-through | Done 2026-10-14. Live on GitHub Pages. Not yet tested on a real iPhone or iPad. |
-| 4 Fall, light, mist | NEXT. Mist bands still read as billboard strips. Band contrast needs a second pass. |
+| 3.5 Flat map redesign | Done 2026-10-15. 2D default, 3D stamp, map key, phone bar, day stamps, koi marker, sea art. Not yet tested on a real iPhone or iPad. |
+| 4 Fall, light, mist | NEXT. 3D only. Mist bands still read as billboard strips. Band contrast needs a second pass. |
 | 5 Memories and merge | |
 | 6 Polish and sound | |
 
@@ -283,6 +294,41 @@ Cade found the kanji-led UI hard to read. He chose direction B: icons in the red
 - The two itinerary files do not merge yet (Phase 5). The app shows the file of the current person.
 - Nobody has tested Phase 3 on a real iPhone or iPad.
 
+## Flat map redesign result (2026-10-15)
+
+Cade's direction: the 3D map was hard to get a bearing on. Decisions (all his, 2026-10-15): a key inset instead of a whole-Japan start frame; grey height bands on the flat map; a 3D stamp; 2D everywhere; plain washi page on the phone; the bottom bar; route and day stamps always on; all the art; the koi marker; iPhone portrait as the first test device.
+
+**One camera, two projections** (`js/app.js`)
+- `view.mode` is `2d` or `3d`. `view.blend` is 0 (perspective) to 1 (orthographic). `camera.updateProjectionMatrix` is overridden: it blends the perspective matrix toward an orthographic one that shows the same world height at the target distance. So every rule that uses `dist` (pin fade, label fade, route dashes, fog) works unchanged in both views.
+- In 2D OrbitControls has rotation off, one finger pans, and the pan is clamped to the Japan bounds. `ctx.sph(dist, polar, az)` answers top-down in 2D, so the modules did not change their camera calls.
+- The 3D stamp (`data-layer="3d"`) calls `view.setMode`. The flight takes 1.5 s over the same ground point. Motion off: a cut with the paper fade.
+- The overview in 2D frames the six region centres plus Fuji into the free map area. `view.frameJapan()` frames the main islands (the inset tap) and sets the caption to "Japan".
+- Pins (`js/pins.js`) set their sprite scale in world units when the projection is blended; nothing occludes a pin on the flat map.
+- The ink shader lightens the relief 30 percent toward paper on the flat map (`uFlat`), so the mountains read as a wash from straight above.
+
+**Flat map layers** (`js/flatmap.js`): sea plane (paper mixed 13 percent toward grey-l, wave tile at 10 percent, drifting slowly), land sheet, coast ink ribbon (1.3 px, dry-brush, same ribbon code as route.js), Lake Biwa fill and shore. The land and coast are discarded inside the base terrain rect, inset 30 units; the coast fades over the last 24 units. All of it uses the terrain's own fog and washi grain. The fragment shaders end with `#include <colorspace_fragment>`, so the paper tones match the terrain exactly.
+
+**Map key** (`js/inset.js`, `css/inset.css`): an 88 x 104 canvas. It draws the coarse outline and the current view as a vermilion frame (the four corners of the free map area, unprojected to the ground; sky rays are cut at a far distance). It redraws at most 10 times a second and only when the camera or the free area moved. Tap: all of Japan in 2D, the overview in 3D. Hidden while a card or the sheet is open.
+
+**Phone layout** (`css/style.css`, `index.html`, `js/ui.js`): phone = `max-width: 600px`. `--cap-in` is 0. The rollers are gone; `#scroll::after` draws the ink rule. `#bar` has four tabs; `body[data-tab]` opens a strip above it (the crests, the filters, or the layer stamps as a horizontal row) or the sheet. A map touch closes a strip. A crest tap closes the strip first, so the flight aims at the whole free area. The sheet is fully off screen when closed; while the trip plays and the sheet is closed, the handle row peeks above the bar (`--peek`). The caption and the key rise above an open strip (`--lift`).
+
+**Day stamps** (`js/route.js`, `css/route.css`): one seal per run of nights in the same place ("1–3", "4", "5", "6–8", "9–10"). While the region name shows, the stamp hangs on its right end (or its left end at the page edge). Otherwise it tries spots around the place. Farther than camera distance 3200 it shows only when it can hang on a name. The masthead band blocks stamps and station labels. Tap: `trip.setDay`.
+
+**Koi marker** (`js/marker.js`): a flat plane with `assets/web/koi-marker.png` (an ink fish drawn in canvas stands in until it loads), 30 px long, placed by `trip.progressPoint`, turned to the heading, with a 6 degree wiggle at 1.2 Hz. It shows while the trip plays, is scrubbed, or rests at a stop. `trip.progress()` and `trip.cursor` are the hooks.
+
+**Art** (`js/art.js`, `data/art.json`): planes at y = -0.8 between the sea (-1.0) and the land (-0.5). The land draws over them, so they never show on land. They fade out below camera distance 110 and are full above 170. Positions were chosen for the phone overview frame: koi pair and crane in the Sea of Japan, the wave with Fuji south of Suruga Bay, the pine south of Kii, the kabuto off Boso. All six images came from Gemini on 2026-10-15 (see gemini-prompts.md). `tools/ink-alpha.py` turns a painting into ink on transparent; it also keeps vermilion marks (the crane's crown, the koi's eye).
+
+**Tests**: cloud Playwright at 390x844, 844x390, 1180x820, 820x1180. Zero console errors (the only logs are 404s for files that did not exist yet and a blocked font). Scripts: `_test/harness.mjs` plus `int-phone.mjs`, `shots-all.mjs`, `probe-stamps.mjs` in the cloud scratchpad.
+
+### Known issues after the flat map redesign
+
+- The overview in portrait uses the middle third of the height, because the trip runs east to west. The empty sea above and below holds the art.
+- When the phone sheet opens, the map above it is not re-aimed. A day tap frames the day in the free area above the sheet.
+- With Motion off, a place tap does not move the camera, so the pin can sit under the bottom sheet.
+- Station labels and the thin local lines are hard to see on the dark Hakone relief in 2D, even with the lighter wash.
+- The mist is 3D only. The Mist stamp is dim in 2D.
+- Nobody has tested the flat map on a real iPhone or iPad.
+
 ## Working method (Cade's expectations)
 
 - Cade does not run prompts or scripts himself. Claude does it, with agents where useful. Name the model per task (Opus plan/review, Sonnet build, Haiku data).
@@ -339,12 +385,12 @@ The page also exposes `window.__map` (camera, controls, pins, `flyToRegion`, `op
 
 ## How to publish
 
-Status: Phase 3 pushed 2026-10-14. The app is live at https://cmrlmatthews-max.github.io/japanmap/.
+Status: the flat map redesign pushed 2026-10-15 from the cloud clone (`/home/claude/japanmap`). The app is live at https://cmrlmatthews-max.github.io/japanmap/.
 
 - The Mac folder is a git repo on branch `main`. The remote `origin` is https://github.com/cmrlmatthews-max/japanmap.
 - The Mac has no GitHub credentials (no keychain entry, no SSH key, no `gh`). Do not push from the Mac.
-- Push method that works: commit on the Mac with osascript (`git add -A && git commit`). Then run `git bundle create _scratch/japanmap.bundle main`. Stage the bundle to the cloud workspace. Clone it there, set `origin` to the GitHub URL, and push. The cloud session needs the repo attached with push access (`add_repo`, access "push"). Cade chose this method on 2026-10-13.
-- After a cloud push, run `git fetch` on the Mac only if the cloud made new commits. Normally the Mac makes all commits, so the two stay the same.
+- Push method that works (2026-10-15): the cloud session attaches the repo with push access (`add_repo`, access "push"), clones it, does the work there, commits, and pushes. Then the Mac folder pulls with osascript: `cd '/Users/cade/Claude-Sandbox/Personal Projects/japan-3d-map' && git pull --ff-only`. The Mac shell (`device_bash`) cannot delete files, so run git on the Mac through osascript, not through `device_bash`.
+- The older method (commit on the Mac, bundle, push from the cloud) still works when the Mac has changes the cloud does not.
 - GitHub Pages is on: branch `main`, folder root. Claude turned it on in Chrome (Settings, Pages). The GitHub API path for Pages is blocked through the cloud proxy.
 - Then Cade opens that URL on iPhone and iPad and uses Share, Add to Home Screen. He tests there.
 - After any change to a cached file, bump `CACHE` in `sw.js`. Then push again.

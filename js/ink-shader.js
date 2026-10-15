@@ -42,6 +42,7 @@ uniform float uFogNear, uFogFar;
 uniform sampler2D uCoastTex;  // per-file blurred land mask: crisp coastlines independent of the mesh resolution
 uniform vec4 uCoastRect;      // world rect (xmin, zmin, xmax, zmax) the raster covers
 uniform vec3 uTint;        // debug: tint to show patch areas
+uniform float uFlat;       // 1 on the flat map: the relief is lifted toward paper, so the ink reads as a wash rather than a dark mass seen from straight above
 uniform vec4 uBounds;      // base only: xmin, zmin, xmax, zmax (world)
 uniform vec4 uRects[${MAX_RECTS}];  // base only: patch rectangles xmin, zmin, xmax, zmax (world, inset)
 uniform int uRectN;
@@ -98,6 +99,7 @@ void main() {
   float c = fract((vH + wob * 0.4) / 300.0);
   float cl = (1.0 - smoothstep(0.0, 0.05, c)) * smoothstep(40.0, 200.0, vH) * (1.0 - snow);
   col = mix(col, uInk, cl * 0.22);
+  col = mix(col, uPaper, 0.3 * uFlat);              // flat map: a lighter wash (the lit slopes that give the 3D view its air are not there)
 
   // --- coast: a crisp ink line of constant screen width, then paper with no terrain ---
   // (flat shores stay clean instead of turning into translucent marsh)
@@ -159,6 +161,7 @@ export function makeInkMaterial(washiTex, { base = false, bounds = null, rects =
       uSnow: { value: 2950 },
       uCamPos: { value: new THREE.Vector3() },
       uTint: { value: new THREE.Vector3() },
+      uFlat: { value: 0 },
       uCoastTex: { value: coastTex },
       uCoastRect: { value: coastRect ? new THREE.Vector4(coastRect.x0, coastRect.z0, coastRect.x1, coastRect.z1) : new THREE.Vector4(0, 0, 1, 1) },
       uFogNear: { value: 90 }, uFogFar: { value: 260 },

@@ -106,8 +106,22 @@ body.trip-open #seals { opacity: 0; pointer-events: none; }
 /* the filter row, region caption: sit above the handle */
 body.has-trip #filters { bottom: calc(var(--hh) + 10px); transition: left .45s ease, gap .3s ease, opacity .3s ease; }
 body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 0; pointer-events: none; }
+
+/* ---------- iPhone portrait: the sheet lives behind the bottom bar (--bar-t, see style.css) ----------
+   Closed: fully off screen (the Trip tab opens it). While the trip plays and the sheet is closed, only the handle row (play, caption, scrub)
+   shows, standing on the bar: the sheet rises by the bar height and is clipped to the handle row so it does not cover the bar. */
 @media (max-width: 600px) {
-  body.has-trip #region { bottom: calc(var(--hh) + 10px + var(--fh) + 12px); transition: opacity .35s ease; }
+  body.trip-playing:not(.trip-open) #scroll { --peek: var(--hh0); }
+  #drawer { height: 68%; transform: translateY(100%); transition: transform .32s ease, clip-path .32s ease, visibility 0s linear .32s;
+            clip-path: inset(0 0 calc(100% - var(--hh0)) 0 round 14px 14px 10px 10px);
+            visibility: hidden; }                                                                      /* off screen and not focusable (focus would scroll #scroll) */
+  #drawer.open, body.trip-playing #drawer { visibility: visible; transition-delay: 0s; }
+  #drawer.open { transform: none; }
+  #drawer.open, #drawer.dragging { clip-path: inset(0 0 0 0 round 14px 14px 0 0); }                   /* the whole sheet while it is open or being pulled */
+  body.trip-playing:not(.trip-open) #drawer { transform: translateY(calc(100% - var(--hh0) - var(--bar-t))); }
+  body.trip-playing:not(.trip-open) #drawer::after { content: ''; position: absolute; left: 0; right: 0; top: calc(var(--hh0) - 1px); height: 1px; background: var(--grey-l); pointer-events: none; }   /* the foot of the peeking strip */
+  .d-probe { height: calc(var(--hh0) + var(--bar-t)); }                                              /* trip.js reads this as the collapsed handle height */
+  body.has-trip #region { bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 12px); transition: opacity .35s ease, bottom .3s ease; }
 }
 
 /* ---------- docked: iPad landscape, iPhone landscape ---------- */

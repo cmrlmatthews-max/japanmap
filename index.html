@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="css/route.css">
 <link rel="stylesheet" href="css/trip.css">
 <link rel="stylesheet" href="css/tips.css">
+<link rel="stylesheet" href="css/inset.css">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -39,6 +40,7 @@
   <button id="who" class="seal on" aria-label="Switch person" hidden><span class="who-ic" data-icon="person"></span><span class="who-name"></span></button>
 
   <nav id="seals" aria-label="Layers">
+    <button class="seal" data-layer="3d" data-icon="cube" data-tip="3D · Tilt the map up" aria-label="3D view"><span class="lb">3D</span></button>
     <button class="seal on" data-layer="route" data-icon="route" aria-label="Route"><span class="lb">Route</span></button>
     <button class="seal on" data-layer="mist" data-icon="mist" aria-label="Mist"><span class="lb">Mist</span></button>
     <button class="seal on" data-layer="camera" data-icon="camera" aria-label="Motion"><span class="lb">Motion</span></button>
@@ -66,7 +68,17 @@
     <button class="seal on" data-cat="art" data-icon="art" aria-label="Art"><span class="lb">Art</span></button>
   </nav>
 
+  <!-- phone only (hidden above 600 px): four tabs. A tab opens a strip above the bar, or the itinerary sheet. Logic in js/ui.js -->
+  <nav id="bar" aria-label="Map controls">
+    <button class="tab" type="button" data-tab="regions" data-tip="Regions · Fly to a region" aria-label="Regions" aria-pressed="false"><span class="stamp" data-icon="regions"></span><span class="lb">Regions</span></button>
+    <button class="tab" type="button" data-tab="filters" data-tip="Filters · Show or hide place types" aria-label="Filters" aria-pressed="false"><span class="stamp" data-icon="filters"></span><span class="lb">Filters</span></button>
+    <button class="tab" type="button" data-tab="layers" data-tip="Layers · Route, mist, motion, sound, 3D" aria-label="Layers" aria-pressed="false"><span class="stamp" data-icon="layers"></span><span class="lb">Layers</span></button>
+    <button class="tab" type="button" data-tab="trip" data-tip="Trip · Open the itinerary" aria-label="Trip" aria-pressed="false"><span class="stamp" data-icon="route"></span><span class="lb">Trip</span></button>
+  </nav>
+
   <div id="region"><div class="en">Central Japan</div></div>
+  <!-- map key: all of Japan with the current view framed in vermilion. Drawn by js/inset.js -->
+  <canvas id="inset" width="88" height="104" tabindex="0" role="button" aria-label="Map key"></canvas>
 
   <aside id="card" aria-hidden="true" aria-label="Place details">
     <div class="grab"></div>

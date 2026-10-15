@@ -6,7 +6,7 @@ import { CATS } from './pins.js';
 import { iconSVG } from './icons.js';
 
 const PAUSE_S = 3;                                  // seconds held at each stop
-const STOP_DIST = 34, STOP_POLAR = 45;              // the stop pose: same distance as a place fly-to
+const STOP_DIST = 34, STOP_DIST_2D = 40, STOP_POLAR = 45;      // the stop pose: same distance as a place fly-to (the flat map sits a little farther)
 const VIEW = { polar: 52, az: 22 };                 // the region view angle (day framing)
 const LS_KEY = 'jmap.trip.v1';
 
@@ -39,7 +39,7 @@ const SVG = {
 export function initTrip(ctx, route) {
   const { THREE, camera, controls, canvas, scrollEl, state, ui, Store, placeById, REGION_INFO } = ctx;
   const drawer = document.getElementById('drawer'), player = document.getElementById('player');
-  if (!drawer || !player) return { update() {}, refresh() {}, play() {}, pause() {}, seek() {}, setDay() {}, get playing() { return false; }, get time() { return 0; }, get duration() { return 0; } };
+  if (!drawer || !player) return { update() {}, refresh() {}, play() {}, pause() {}, seek() {}, setDay() {}, progress() { return null; }, progressPoint() { return null; }, get cursor() { return false; }, get playing() { return false; }, get time() { return 0; }, get duration() { return 0; } };
   const bodyEl = document.body;
   const dockMQ = matchMedia(DOCK_MQ), landPhoneMQ = matchMedia('(max-height: 520px) and (orientation: landscape)');
   const docked = () => dockMQ.matches;
@@ -69,7 +69,9 @@ export function initTrip(ctx, route) {
   }
   const rectNow = () => safe(() => ctx.freeRect(false), null) || { x0: 0, y0: 0, x1: canvas.clientWidth, y1: canvas.clientHeight };
   const azNow = () => deg(Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z));
-  const stopPose = (id, az) => ctx.aimPose(stopWorld(id), ctx.sph(STOP_DIST, STOP_POLAR, az), ctx.rectCentre(rectNow()));
+  const is2d = () => !!(ctx.view && ctx.view.is2d()), modeNow = () => ctx.view ? ctx.view.mode : '3d';
+  const stopDist = () => is2d() ? STOP_DIST_2D : STOP_DIST;
+  const stopPose = (id, az) => ctx.aimPose(stopWorld(id), ctx.sph(stopDist(), STOP_POLAR, az), ctx.rectCentre(rectNow()));
 
   // ---------- timeline ----------
   function legIndex(d, k) { return d === 0 ? k - 1 : k; }                // the leg that arrives at stop k of day d
@@ -131,13 +133,14 @@ export function initTrip(ctx, route) {
     const path = legPath(seg.d, seg.li, seg), endPose = stopPose(seg.id, az);
     const e0 = ease(k0), P0 = sample(path, e0, new THREE.Vector3()), P1 = sample(path, 1, new THREE.Vector3());
     const lift = clamp(0.35 * path.len, 3, 80);               // a calm rise: longer legs lift higher
-    return { segIdx: entered, path, az, endPose, e0, k0, lift, r_c: sp.radius, phi_c: deg(sp.phi), d_c: T.clone().sub(P0), d1: endPose.target.clone().sub(P1), cut: false };
+    return { segIdx: entered, mode: modeNow(), path, az, endPose, e0, k0, lift, r_c: sp.radius, phi_c: deg(sp.phi), d_c: T.clone().sub(P0), d1: endPose.target.clone().sub(P1), cut: false };
   }
   function applyHop(c, k) {
     const e = ease(k), u = (1 - c.e0) < 1e-6 ? 1 : clamp((e - c.e0) / (1 - c.e0), 0, 1);
     sample(c.path, e, _a);
     const target = _a.add(_b.copy(c.d_c).lerp(c.d1, u));
-    const r = lerp(c.r_c - c.lift * Math.sin(Math.PI * c.k0), STOP_DIST, u) + c.lift * Math.sin(Math.PI * k);
+    if (is2d()) target.y = 0;                                                  // the flat map keeps its look-at point on the ground plane
+    const r = lerp(c.r_c - c.lift * Math.sin(Math.PI * c.k0), stopDist(), u) + c.lift * Math.sin(Math.PI * k);   // (2D: the lift is a zoom out and in)
     const phi = lerp(c.phi_c, STOP_POLAR, u);
     controls.target.copy(target);
     camera.position.copy(target).add(ctx.sph(r, phi, c.az));
@@ -153,7 +156,7 @@ export function initTrip(ctx, route) {
       return;
     }
     if (ctx.isFlying()) return;                                                  // an app flight (place fly-to, day framing) owns the camera
-    if (!hopCtx || hopCtx.segIdx !== entered || hopCtx.cut) hopCtx = captureHop(seg, k);
+    if (!hopCtx || hopCtx.segIdx !== entered || hopCtx.cut || hopCtx.mode !== modeNow()) hopCtx = captureHop(seg, k);      // (also after a 2D/3D switch: the old capture is for the other projection)
     controls.enabled = false;
     applyHop(hopCtx, k);
     R.prog(seg.d, seg.li, ease(k));
@@ -166,7 +169,7 @@ export function initTrip(ctx, route) {
     R.day(seg.d); showDay(seg.d);
     if (seg.type === 'hop') { hopCtx = null; setNow(null); return; }
     // a pause at a stop
-    const c = hopCtx;
+    const c = hopCtx && !hopCtx.cut && hopCtx.mode !== modeNow() ? null : hopCtx;               // a capture made in the other mode (2D / 3D) is stale
     if (c && c.segIdx === prevIdx && !c.cut) { if (state.cameraMoves) snapTo(c.endPose); else ctx.cutToPose(c.endPose); }   // the hop ends exactly on the stop pose
     else if (!c && time - seg.t0 < 0.5) ensurePose(seg);                                      // arrived by a jump or by the first play: fly to the stop
     hopCtx = null;
@@ -179,7 +182,7 @@ export function initTrip(ctx, route) {
   function regionFollow(seg) { const r = placeOf(seg.id)?.region || days[seg.d].region; safe(() => { ui.setActiveRegion(r); state.region = r; }); }
   function ensurePose(seg) {
     const pose = stopPose(seg.id, azNow());
-    const far = controls.target.distanceTo(pose.target) > 0.6 || Math.abs(camera.position.distanceTo(controls.target) - STOP_DIST) > 0.6;
+    const far = controls.target.distanceTo(pose.target) > 0.6 || Math.abs(camera.position.distanceTo(controls.target) - stopDist()) > 0.6;
     if (far) ctx.flyToPose(pose, 2.0, { arc: 0.2 });
   }
 
@@ -397,7 +400,8 @@ export function initTrip(ctx, route) {
     const w = canvas.clientWidth, hh = canvas.clientHeight, fr = rectNow();
     const fw = Math.max(0.2, (fr.x1 - fr.x0) / w), fh = Math.max(0.2, (fr.y1 - fr.y0) / hh);
     const vTan = Math.tan(rad(camera.fov / 2)), hTan = vTan * (w / hh);
-    const dist = clamp(Math.max(Rr / (0.7 * fw * hTan), Rr * Math.cos(rad(VIEW.polar)) / (0.7 * fh * vTan)), STOP_DIST, 600);
+    const fore = is2d() ? 1 : Math.cos(rad(VIEW.polar));                   // the flat map has no foreshortening
+    const dist = clamp(Math.max(Rr / (0.7 * fw * hTan), Rr * fore / (0.7 * fh * vTan)), stopDist(), is2d() ? Math.max(600, controls.maxDistance) : 600);   // (the flat map may zoom out farther, so a long day like Hakone to Kyoto fits)
     const pose = ctx.aimPose(c, ctx.sph(dist, VIEW.polar, VIEW.az), ctx.rectCentre(fr));
     safe(() => ui.setActiveRegion(day.region)); state.region = day.region;
     ctx.flyToPose(pose, 3.5, { arc: 0.3 });
@@ -554,6 +558,29 @@ export function initTrip(ctx, route) {
     },
     refresh() { pause(); return load(); },
     play, pause, seek(s) { commitSeek(s); }, setDay,
+    // where the trip cursor is: { day, leg, t } on a hop (t eased 0..1, like the ink), { day, leg, t: 1 } at a stop (leg = the arriving leg, -1 at the very first stop), null when off
+    progress() {
+      if (!cursorOn || !segs.length) return null;
+      const seg = segs[segAt(time)]; if (!seg) return null;
+      if (seg.type !== 'hop') return { day: seg.d, leg: seg.li, t: seg.li < 0 ? 0 : 1 };
+      return { day: seg.d, leg: seg.li, t: state.cameraMoves || dragging ? ease(clamp((time - seg.t0) / (seg.t1 - seg.t0), 0, 1)) : 1 };   // still camera: the cut already shows the whole hop (not while scrubbing)
+    },
+    // the cursor's world point (into `out`, or null when off) and, when given, its heading in `tangent` (unit; zero when there is none, as at the first stop)
+    progressPoint(out = new THREE.Vector3(), tangent = null) {
+      const p = api.progress(), seg = p && segs[segAt(time)]; if (!seg) return null;
+      if (tangent) tangent.set(0, 0, 0);
+      if (p.leg >= 0 && safe(() => route.pointOnLeg(p.day, p.leg, p.t, out, tangent), null)) return out;
+      if (seg.type === 'hop') {                                                           // no path from the route layer: the straight line between the stops
+        const path = legPath(seg.d, seg.li, seg); sample(path, p.t, out);
+        if (tangent) { tangent.subVectors(path.pts[path.pts.length - 1], path.pts[0]); if (tangent.lengthSq() > 1e-12) tangent.normalize(); }
+        return out;
+      }
+      out.copy(stopWorld(seg.id));
+      const nx = segs[segAt(time) + 1];                                                   // the very first stop: face the way the first hop leaves
+      if (tangent && nx && nx.type === 'hop') safe(() => route.pointOnLeg(nx.d, nx.li, 0, _a, tangent));
+      return out;
+    },
+    get cursor() { return cursorOn; },
     get playing() { return playing; }, get time() { return time; }, get duration() { return duration; },
     get segments() { return segs; }, get day() { return activeDay; }, get dayStarts() { return dayStart; }, get open() { return open; },
     setOpen, get maxStep() { return maxStep; }, set maxStep(v) { maxStep = +v || 0.25; },     // test hook: software GL renders ~1 frame per second

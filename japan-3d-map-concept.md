@@ -364,11 +364,23 @@ Not placed yet: Nara Park (the Day 9 walk crosses it), Kyoto Imperial Palace (ne
 
 Cade reads no Japanese. English is now the default everywhere. The red hanko stamps stay, but they hold ink-brush pictograms instead of kanji (temple pagoda, torii gate, inn, tree, building, steam, robot, brush, and travel modes). Japanese remains only as art: the 日本の旅 title calligraphy and one small grey kanji line on each place card. The icons are drawn in code now. Painted Gemini icons can replace them later through `ICON_ART` in `js/icons.js`. This replaces the "kanji plus hiragana readings" rule in section 2.
 
-## 16. Next step
+## 16. Flat map redesign (2026-10-15)
 
-1. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and iPad and tests Phase 3. Delete the old Home Screen icon first, or wait for the v4 cache to load.
+Cade found the 3D map hard to get a bearing on. The map now opens flat (2D), north up, framed on central Japan, on every device. A "3D" stamp tilts the same view up in a slow 1.5 s move. The 3D map is the same scene seen through a perspective projection, so every pin, label and route works in both.
+
+- **Flat map look:** grey ink height bands where the terrain files exist, flat paper elsewhere. All of Japan has an ink coastline (Natural Earth 10m) and Lake Biwa. The sea is a faint wash with a sparse wave pattern.
+- **Map key:** a small inset of all Japan, bottom right, with the current view framed in vermilion. A tap frames the whole country.
+- **Phone frame:** a plain washi page with a thin ink rule. No rollers on the phone. iPad landscape keeps the handscroll.
+- **Phone chrome:** one bottom bar with four tabs: Regions, Filters, Layers, Trip. A tab opens a strip above the bar, or the itinerary sheet.
+- **Travel lines:** the full route shows at all times in 2D. Each run of nights gets a small day stamp ("1–3", "4", "5", "6–8", "9–10") that hangs on the region name. The fly-through runs on the flat map, with a koi as the marker.
+- **Artwork:** five grey ink paintings in the sea, 28 to 32 percent: a great wave with Fuji (Pacific), a koi pair and a crane (Sea of Japan), a pine branch (south of Kii), a kabuto helmet (off Boso). They sit under the land, so they never cover land or pins, and they fade out below camera distance 110. Fuji ink on the loading page and behind the who picker.
+- The plan file is `flat-map-plan.md`. The build notes are in HANDOFF.md.
+
+## 17. Next step
+
+1. Cade opens https://cmrlmatthews-max.github.io/japanmap/ on iPhone and tests the flat map. Delete the old Home Screen icon first, or wait for the v6 cache to load.
 2. Cade and Casey edit their plans. Tell Claude the changes. Claude updates `tools/build-itinerary.py` and pushes.
-3. Phase 4: fall color, light, and mist.
+3. Phase 4: fall color, light, and mist (3D only).
 
 ---
 

@@ -9,3 +9,24 @@
   will-change: transform, opacity;
 }
 .rstn.show { opacity: var(--o, 1); }
+
+/* Day stamps: one vermilion seal per run of nights in the same place ("1–3", "4"), positioned by js/route.js. Tap = go to that day. */
+.dstamp {
+  position: absolute; left: 0; top: 0; z-index: 5;
+  box-sizing: border-box; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 3px;
+  border-radius: 4px 3px 5px 3px;
+  background: var(--vermilion); color: var(--paper);
+  /* a 1px paper hairline just inside the edge, like the hanko seals */
+  box-shadow: inset 0 0 0 1.5px var(--vermilion), inset 0 0 0 2.5px rgba(245, 239, 224, .55), 0 1px 2px rgba(44, 44, 42, .28);
+  white-space: nowrap; cursor: pointer;
+  opacity: 0; pointer-events: none; transition: opacity .3s ease, filter .15s ease;
+  will-change: transform, opacity;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation;
+}
+.dstamp b { display: block; font-family: var(--mincho); font-weight: 500; font-size: 11px; line-height: 1; letter-spacing: .01em; font-variant-numeric: lining-nums; }
+.dstamp.show { opacity: var(--o, 1); pointer-events: auto; }
+.dstamp.show:hover { filter: brightness(1.1); }
+.dstamp.show:active { filter: brightness(.92); }
+.dstamp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+@media (pointer: coarse) { .dstamp::before { content: ''; position: absolute; inset: -5px; } }      /* a roomier touch target; stays clear of the place's own seal */
+@media (prefers-reduced-motion: reduce) { .dstamp { transition: none; } }

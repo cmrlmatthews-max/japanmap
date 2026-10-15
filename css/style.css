@@ -61,6 +61,8 @@ button { font-family: inherit; }
 .seal .lb { display: block; font-size: 10px; line-height: 11px; font-weight: 500; letter-spacing: .02em; text-align: center; color: var(--grey-d); text-shadow: var(--halo-s); transition: color .3s; }
 .seal.on .lb { color: var(--ink); }
 .seal:active .stamp { transform: scale(.96); }
+.seal { transition: opacity .3s; }
+.seal.dim { opacity: .45; }   /* a layer with no effect in the current view (Mist on the flat map) */
 
 #seals { --fs: 40px; position: absolute; left: calc(var(--cap-in) + 10px + var(--sal)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 6; }
 
@@ -74,6 +76,9 @@ button { font-family: inherit; }
 #filters { transition: left .45s ease, gap .3s ease; position: absolute; left: 50%; bottom: max(16px, var(--sab)); transform: translateX(-50%); display: flex; align-items: flex-start; gap: 6px; z-index: 6; }
 #filters .seal .lb { font-size: 10.5px; }
 #filters .seal[data-cat="onsen"] .lb { width: min-content; }   /* "Hot springs" on two lines */
+
+/* bottom bar: phone only (the iPhone block at the end shows it) */
+#bar { display: none; }
 
 /* ---- region crests ---- */
 #crests { position: absolute; right: calc(var(--cap-in) + 10px + var(--sar)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 6;
@@ -169,8 +174,13 @@ button { font-family: inherit; }
 
 #fade { position: absolute; inset: 0; z-index: 11; background: var(--paper); opacity: 0; pointer-events: none; }
 
-#loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 20; background: var(--paper);
-           transition: opacity 1.2s ease; }
+#loading { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; z-index: 20; background: var(--paper);
+           transition: opacity 1.2s ease; }   /* align-content: the brush and the text sit together in the middle, above the Fuji wash */
+/* a faint ink Fuji low on the loading page and behind the who picker (assets/web/fuji-ink.png: ink on transparent) */
+#loading::before, #whoPick::before { content: ''; position: absolute; left: 50%; bottom: 0; width: min(92vw, 640px); aspect-ratio: 800 / 658; transform: translateX(-50%);
+  background: url('../assets/web/fuji-ink.png') center bottom / 100% auto no-repeat; opacity: .22; pointer-events: none; }
+#whoPick::before { bottom: max(8px, var(--sab)); opacity: .16; }
+#loading > *, .overlay .sheet { position: relative; }
 #loading.done { opacity: 0; pointer-events: none; }
 #loading .txt { text-align: center; font-family: var(--display); font-weight: 600; font-size: 30px; letter-spacing: .02em; }
 #loading .txt span { font-family: var(--mincho); font-weight: 400; font-size: 12px; letter-spacing: .16em; color: var(--grey-d); }
@@ -180,6 +190,7 @@ button { font-family: inherit; }
 
 /* ---- short screens (iPhone landscape): smaller crests with a small caption, masthead title in one line ---- */
 @media (max-height: 520px) {
+  #seals { --fs: 34px; gap: 8px; }   /* five stamps with the 3D one: the column must clear the region caption at the top */
   #crests { gap: 2px; --cs: 30px; top: 52px; transform: none; }
   .crest { min-width: 40px; display: flex; flex-direction: column; align-items: center; }
   .crest i { font-size: 9px; line-height: 11px; }
@@ -221,26 +232,60 @@ button { font-family: inherit; }
 /* ---- iPad portrait: the caption must stay clear of the masthead art ---- */
 @media (min-width: 601px) and (max-width: 899px) { #region .en { font-size: 32px; } }
 
-/* ---- iPhone portrait ---- */
+/* ---- iPhone portrait: no rollers, a bottom bar with four tabs, the crests, filters and layer stamps as strips above it ---- */
 @media (max-width: 600px) {
-  #scroll { --cs: 38px; --fs: 31px; }
+  /* --bar-t: the whole bar (tabs plus safe area). --peek: how far the trip player rises above the bar (trip.css). --lift: how far the caption and the map key rise above an open strip. */
+  #scroll { --cs: 38px; --fs: 34px; --cap-in: 0px; --bar-h: 58px; --bar-t: calc(var(--bar-h) + max(10px, var(--sab))); --peek: 0px; --lift: 0px; }
+  .cap { display: none; }
+  #scroll::after { content: ''; position: absolute; inset: 8px; border: 1px solid rgba(44, 44, 42, .35); border-radius: 3px 2px 4px 2px; pointer-events: none; z-index: 5; }   /* a thin ink rule instead of the rollers */
   #title img { height: 44px; }
   #title .sub .name { font-size: 19px; }
   #title .sub .yr { display: none; }
-  #crests { top: calc(max(14px, var(--sat)) + 74px); right: auto; left: 50%; transform: translateX(-50%); flex-direction: row; align-items: flex-start; gap: 3px; }
   .crest { width: 40px; display: flex; flex-direction: column; align-items: center; }
   .crest i { font-size: 9px; line-height: 12px; letter-spacing: .01em; }
-  #who { right: calc(var(--cap-in) + 5px + var(--sar)); gap: 5px; }
-  #seals { left: calc(var(--cap-in) + 8px + var(--sal)); }
-  #region { top: auto; left: calc(var(--cap-in) + 12px + var(--sal)); bottom: calc(max(16px, var(--sab)) + var(--fh) + 12px); }
-  #region .en { font-size: 25px; }
-  #filters { gap: 2px; }
-  #filters .seal .lb { font-size: 9px; letter-spacing: -.01em; }
+  #who { right: calc(12px + var(--sar)); gap: 5px; }
+  #region { top: auto; left: calc(12px + var(--sal)); bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 12px); transition: opacity .35s ease, bottom .3s ease; }
+  #region .en { font-size: 22px; }
   .rlabel .t { font-size: 15px; letter-spacing: .14em; padding-left: .14em; }
   .landmark .t { font-size: 15px; }
   #card { width: 100%; }
   .overlay .pair { gap: 12px; }
   .who-btn { width: 128px; }
+
+  /* the bar: four tabs in the stamp style. Empty parts of the bar let touches through to the map. */
+  #bar { display: flex; position: absolute; left: 0; right: 0; bottom: 0; height: var(--bar-t); padding: 0 6px max(10px, var(--sab)); justify-content: space-around; align-items: center; z-index: 7; pointer-events: none;
+         background: linear-gradient(to top, rgba(245, 239, 224, .96), rgba(245, 239, 224, .85) 70%, rgba(245, 239, 224, 0)); }
+  #bar::after { content: ''; position: absolute; left: 8px; right: 8px; top: 0; bottom: 8px; border: 1px solid rgba(44, 44, 42, .35); border-top: 0; border-radius: 0 0 4px 2px; pointer-events: none; }   /* the foot of the ink rule: the bar's wash would hide it */
+  .tab { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 64px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--vermilion); font-family: var(--mincho); cursor: pointer; }
+  .tab .stamp { display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--vermilion); border-radius: 4px 3px 5px 3px;
+                background: rgba(245, 239, 224, .5); color: var(--vermilion); opacity: .6; transition: opacity .3s, background .3s, color .3s; }
+  .tab .stamp :is(svg, img) { display: block; width: 64%; height: 64%; }
+  .tab .lb { display: block; font-size: 10px; line-height: 11px; font-weight: 500; letter-spacing: .02em; color: var(--grey-d); transition: color .3s; }
+  .tab:active .stamp { transform: scale(.96); }
+  body[data-tab="regions"] #bar [data-tab="regions"] .stamp, body[data-tab="filters"] #bar [data-tab="filters"] .stamp,
+  body[data-tab="layers"] #bar [data-tab="layers"] .stamp, body[data-tab="trip"] #bar [data-tab="trip"] .stamp { background: var(--vermilion); color: var(--paper); opacity: 1; }
+  body[data-tab="regions"] #bar [data-tab="regions"] .lb, body[data-tab="filters"] #bar [data-tab="filters"] .lb,
+  body[data-tab="layers"] #bar [data-tab="layers"] .lb, body[data-tab="trip"] #bar [data-tab="trip"] .lb { color: var(--ink); }
+  body:not(.has-trip) #bar [data-tab="trip"] { opacity: .45; }   /* no itinerary loaded: nothing to open */
+
+  /* the strips: one row above the bar, only for the open tab. A faint paper cloud sits behind each. */
+  #crests, #filters, #seals { display: none; }
+  body[data-tab="regions"] #crests, body[data-tab="filters"] #filters, body[data-tab="layers"] #seals { display: flex; }
+  #scroll #crests, #scroll #filters, #scroll #seals {
+    position: absolute; left: 50%; right: auto; top: auto; bottom: calc(var(--bar-t) + var(--peek) + 10px); transform: translateX(-50%);
+    flex-direction: row; align-items: flex-start; gap: 8px; width: max-content; max-width: calc(100% - 20px); padding: 6px 10px;
+    overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    border-radius: 26px; background: radial-gradient(ellipse at center, rgba(245, 239, 224, .84) 0%, rgba(245, 239, 224, .62) 60%, rgba(245, 239, 224, 0) 100%);
+    box-shadow: 0 0 10px 6px rgba(245, 239, 224, .45);
+  }
+  #crests::-webkit-scrollbar, #filters::-webkit-scrollbar, #seals::-webkit-scrollbar { display: none; }
+  #crests .crest, #filters .seal, #seals .seal { flex: none; }
+  #filters .seal, #seals .seal { padding: 0 4px; margin: 0 -4px; }   /* wider touch area, same look: the padding cancels the margin and the stamps keep their 8px gap */
+  #filters .seal .lb { font-size: 9.5px; letter-spacing: -.01em; }
+  body[data-tab="regions"] #scroll { --lift: 66px; }
+  body[data-tab="filters"] #scroll { --lift: 76px; }
+  body[data-tab="layers"] #scroll { --lift: 70px; }
+  body #inset { bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 10px); }   /* the map key (js/inset.js) rides above the bar, an open strip and the peeking player */
 }
 @media (prefers-reduced-motion: reduce) {
   #loading .brush { animation: none; }

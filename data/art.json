@@ -1,0 +1,52 @@
+[
+  {
+    "id": "wave-fuji",
+    "file": "assets/web/art-wave-fuji.png",
+    "lon": 138.451,
+    "lat": 33.473,
+    "km": 170,
+    "rot": 0,
+    "opacity": 0.38,
+    "flip": false
+  },
+  {
+    "id": "koi",
+    "file": "assets/web/art-koi.png",
+    "lon": 135.89,
+    "lat": 37.388,
+    "km": 120,
+    "rot": -0.35,
+    "opacity": 0.44,
+    "flip": false
+  },
+  {
+    "id": "crane",
+    "file": "assets/web/art-crane.png",
+    "lon": 137.744,
+    "lat": 37.633,
+    "km": 90,
+    "rot": 0.15,
+    "opacity": 0.38,
+    "flip": false
+  },
+  {
+    "id": "pine",
+    "file": "assets/web/art-pine.png",
+    "lon": 135.547,
+    "lat": 31.942,
+    "km": 110,
+    "rot": 0,
+    "opacity": 0.38,
+    "flip": false
+  },
+  {
+    "id": "kabuto",
+    "file": "assets/web/art-kabuto.png",
+    "lon": 139.872,
+    "lat": 34.169,
+    "km": 70,
+    "rot": 0,
+    "opacity": 0.36,
+    "flip": false
+  }
+]

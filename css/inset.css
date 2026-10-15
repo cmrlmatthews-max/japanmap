@@ -1,0 +1,25 @@
+/* ---- map key: a small Japan with the current view framed in vermilion (js/inset.js) ---- */
+#inset {
+  position: absolute; z-index: 6;
+  right: calc(var(--cap-in) + 10px + var(--sar));
+  bottom: calc(max(16px, var(--sab)) + var(--fh) + 14px);
+  width: 88px; height: 104px;
+  border-radius: 3px 2px 4px 2px;
+  box-shadow: 0 0 0 1px rgba(44, 44, 42, .18);
+  cursor: pointer; touch-action: manipulation;
+  transition: opacity .3s ease;
+}
+#inset:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 3px; }
+
+/* phone: above the bottom bar */
+@media (max-width: 600px) {
+  #inset { right: 10px; bottom: calc(var(--bar-h, 58px) + max(10px, var(--sab)) + 10px); }
+}
+
+/* short screens (iPhone landscape): the crest column and the seal column use the whole height, so there is no room for the key */
+@media (max-height: 520px) { #inset { display: none; } }
+
+/* the info card and the itinerary drawer take the place */
+body.card-open #inset, body.trip-open #inset { opacity: 0; pointer-events: none; }
+
+@media (prefers-reduced-motion: reduce) { #inset { transition: none; } }

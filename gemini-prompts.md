@@ -437,3 +437,62 @@ Save every file in `assets/`. Check the box when the file is downloaded, renamed
 | city-crest-set.png | 1536 x 256 | Yes | ☐ |
 
 If a file was generated on magenta #FF00FF, write "magenta" next to the box and tell the developer.
+
+## Flat map art (2026-10-15)
+
+### 1. art-wave-fuji
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting in the spirit of ukiyo-e seascapes. A large ocean wave fills the left side of the image. The wave curls over. Its crest breaks into foam fingers at the left side, drawn as bare paper with dry-brush edges. Far behind the wave, on the right, a small Mount Fuji rises. Paint Fuji small and pale, with a light grey wash, so it looks far away. The composition is original. Invent the shape of the wave yourself. Do not copy any existing painting or print. Use black and grey ink only, with loose dry-brush strokes and soft washes. Leave lots of empty space. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### 2. art-koi
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting of two koi carp, seen from above. The two koi swim in a circle. One koi is in the upper part of the image. The other koi is in the lower part. Both koi follow the same circular path, so their bodies curve around one ring. Their tails trail behind them in long, soft brush strokes. The fins are quick dry-brush marks. The composition is original. Do not copy any existing painting or print. Use black and grey ink only, with loose dry-brush strokes and soft washes. Leave lots of empty space around the koi. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### 3. art-crane
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting of a single red-crowned crane in flight. Show the crane from the side. Its wings are spread wide. It flies to the right. Its neck reaches forward and its legs trail behind. Use dark ink for the wingtips and the neck, and a light grey wash for the body. The composition is original. Do not copy any existing painting or print. Use black and grey ink only, except for one tiny vermilion red #C8341E dot on the crown. Use loose dry-brush strokes and soft washes. Leave lots of empty space. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### 4. art-pine
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting of a single pine branch in bonsai style. The branch enters the image from the left edge. It is thin and bent, with a few short side branches. Paint clusters of short pine needles with quick dry-brush strokes. Use soft grey washes for the bark. The composition is original. Do not copy any existing painting or print. Use black and grey ink only, with loose dry-brush strokes and soft washes. Leave lots of empty space around the branch. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### 5. art-kabuto
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting of a samurai kabuto helmet, seen from the front. The helmet is centered. Its bowl is a rounded dome made of plates, drawn with quick dry-brush strokes. Two curved crest horns rise from the top of the helmet. There is no face, no face mask, and no person in the image. The composition is original. Do not copy any existing painting or print. Use black and grey ink only, with loose dry-brush strokes and soft washes. Leave lots of empty space around the helmet. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### 6. koi-marker
+
+```text
+Generate an image, not code. Create a square 1:1 image of a traditional Japanese sumi-e ink wash painting of one small koi carp, seen from above. The koi swims to the right. Its body is slightly curved. The shape is compact and simple, with a strong, bold silhouette in dark sumi ink. Use few brush strokes, so the fish reads clearly when it is shown only 30 pixels wide. Make the fish fill about half of the frame. Put one tiny vermilion red #C8341E dot on the head. The composition is original. Do not copy any existing painting or print. Use black and grey ink only, except for that one vermilion dot. Use loose dry-brush strokes and soft washes. Leave lots of empty space around the fish. No text, no border, no frame, no signature. Place the artwork on a solid flat #FF00FF magenta background with nothing else on it. No shadows, no glow, no 3D look. Do not use magenta in the artwork.
+```
+
+### Flat map art status
+
+All six were generated on 2026-10-15 with model Flash. The originals are in `assets/_jpeg-originals/` (gitignored, kept on the Mac).
+
+| File | Prompt | Status | Web size | Note |
+|---|---|---|---|---|
+| art-wave-fuji.png | 1 | Done | 1024 x 797 | Gemini painted the art on a cream sheet over the magenta. The new `tools/ink-alpha.py` handles that. |
+| art-koi.png | 2 | Done | 885 x 1024 | White ground. |
+| art-crane.png | 3 | Done | 1024 x 793 | White ground. The vermilion crown survives the key. |
+| art-pine.png | 4 | Done | 1024 x 846 | White ground. |
+| art-kabuto.png | 5 | Done | 866 x 1024 | White ground. |
+| koi-marker.png | 6 | Done | 256 x 209 | Gemini drew the fish heading up-right. The web copy is turned 44 degrees so the head points right. |
+
+### Process notes
+
+- From prompt 2 on, the prompts ask for a plain white ground instead of magenta. Gemini then paints no sheet and no border.
+- `tools/ink-alpha.py IN OUT --trim` turns a painting into ink on transparent: alpha = darkness against the ground. Magenta and the edge of a painted sheet are removed first. Vermilion marks keep their colour.
+- `tools/key-magenta.py` is still right for assets with colour (crests, leaves). Use `ink-alpha.py` for grey ink paintings.
+- The Gemini page needs a click in the prompt box after it loads. The Return key does not send; click the arrow at the right of the box.
+- Downloaded images land in `/Users/cade/Claude-Sandbox/Personal Projects/` as `Gemini_Generated_Image_*.jpeg`. Move them at once with `mv` through osascript.

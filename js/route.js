@@ -355,13 +355,14 @@ export async function initRoute(ctx) {
   // --- the trip ---
   const api = { itinerary: null, who: null };
   let legs = [];                 // legs[day][i] = { order, from, to, mode, minutes, pts:[Vector3], cum:Float32Array, len }
-  let tripMesh = null, labels = [], stopPos = new Map(), stationPos = new Map(), buildToken = 0;
+  let tripMesh = null, labels = [], stamps = [], stopPos = new Map(), stationPos = new Map(), buildToken = 0;
   let wanted = 1, shown = 1, activeDay = null, dayMix = 1;
 
   function disposeTrip() {
     if (tripMesh) { group.remove(tripMesh); tripMesh.geometry.dispose(); tripMesh = null; }
     for (const l of labels) l.el.remove();
-    labels = []; legs = [];
+    for (const s of stamps) s.el.remove();
+    labels = []; stamps = []; legs = [];
   }
 
   const warned = new Set();
@@ -447,7 +448,45 @@ export async function initRoute(ctx) {
       labels.push({ id: t.station.id, el, pos: new THREE.Vector3(t.c[0], t.c[1], t.c[2]), days: [t.day], on: false, w: 0, h: 0 });
     }
     api.stationCount = labels.length;
+    buildStamps(it);
     applyDay();
+  }
+
+  // --- day stamps: one seal per run of nights spent in the same place ---
+  // A day's place is its `stay` when it has one. A day without a stay is spent where it ends (the region of its last stop) and joins the previous
+  // group when that group is in the same region. Consecutive days with the same place share one stamp ("1–3", "4", "5", "6–8", "9–10").
+  const setStampOn = (s, on) => { s.on = on; s.el.classList.toggle('show', on); s.el.tabIndex = on ? 0 : -1; s.el.setAttribute('aria-hidden', on ? 'false' : 'true'); };
+  function buildStamps(it) {
+    const days = it.days || [], n = days.length;
+    const lastStop = (d) => (d.stops || [])[(d.stops || []).length - 1];
+    const groups = [];
+    days.forEach((d, i) => {
+      const stayP = d.stay ? placeById.get(d.stay) : null, stay = stayP ? d.stay : null;
+      const region = (stayP && stayP.region) || (placeById.get(lastStop(d)) || {}).region || d.region || '', g = groups[groups.length - 1];
+      if (g && (stay ? g.stay === stay : g.region === region)) g.last = i; else groups.push({ stay, region, first: i, last: i });
+    });
+    for (const g of groups) {
+      const stayP = g.stay ? placeById.get(g.stay) : null;
+      const endsTrip = g.last === n - 1, nights = g.last - g.first + 1 - (endsTrip ? 1 : 0);        // the last day of the trip has no night
+      const anchorId = g.stay || lastStop(days[Math.max(g.first, g.last - (endsTrip ? 1 : 0))]);     // where the last night of the run is spent
+      const xz = placeXZ(anchorId); if (!xz) continue;
+      const a = g.first + 1, b = g.last + 1;
+      const name = stayP ? (stayP.short || stayP.name) : ((ctx.REGION_INFO && ctx.REGION_INFO[g.region]) || {}).en || '';
+      const tip = [a === b ? `Day ${a}` : `Day ${a}–${b}`, nights > 0 ? `${nights} night${nights === 1 ? '' : 's'}` : '', name].filter(Boolean).join(' · ');
+      const el = document.createElement('div'), t = document.createElement('b');
+      el.className = 'dstamp'; t.textContent = a === b ? String(a) : `${a}–${b}`; el.appendChild(t);
+      el.dataset.tip = tip; el.setAttribute('role', 'button'); el.tabIndex = -1; el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-label', tip.replace(/ · /g, ', '));
+      const go = () => { const tr = mapRef && mapRef.trip; if (tr && typeof tr.setDay === 'function') tr.setDay(g.first); };
+      el.addEventListener('click', go);
+      el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); go(); } });   // stopPropagation: Space must not also play the trip
+      scrollEl.appendChild(el);
+      stamps.push({ el, own: anchorId, region: g.region, first: g.first, pos: new THREE.Vector3(xz[0], surfaceY(xz[0], xz[1]) + 0.03, xz[1]), on: false, w: 0, h: 0, o: '' });
+    }
+    api.stampCount = stamps.length;
+  }
+  if (typeof document !== 'undefined' && document.fonts) {                  // the stamp width depends on the label font
+    const remeasure = () => { for (const s of stamps) s.w = 0; };
+    document.fonts.ready.then(remeasure); document.fonts.addEventListener?.('loadingdone', remeasure);
   }
 
   // --- state setters ---
@@ -487,7 +526,8 @@ export async function initRoute(ctx) {
   function update(dt, dist) {
     time += dt;
     const w = canvas.clientWidth || 1, h = canvas.clientHeight || 1;
-    U.uRes.value.set(w, h); U.uNear.value = camera.near * 1.02;
+    // near clip only for a pure perspective projection; blended or orthographic (w = 1) must not clip against it
+    U.uRes.value.set(w, h); U.uNear.value = camera.projectionMatrix.elements[11] < -0.999 ? camera.near * 1.02 : 0;
     const k = h / (2 * Math.tan(camera.fov * Math.PI / 360) * Math.max(dist, 1));
     U.uK.value = k;
     const L = Math.log(k) / Math.log(LADDER);
@@ -511,7 +551,9 @@ export async function initRoute(ctx) {
     uiAt = now; uiList = [];
     const probe = document.getElementById('capProbe'), ci = probe ? probe.getBoundingClientRect().left : 0;
     uiList.push({ x: 0, y: 0, w: ci, h }, { x: w - ci, y: 0, w: ci, h });
-    for (const sel of ['#title img', '#title .sub', '#who', '#seals', '#crests', '#filters', '#player', '#drawer', '#card.open', '#card[aria-hidden="false"]']) {
+    const title = document.getElementById('title');                       // the whole masthead band: a stamp or label beside the title reads as part of it
+    if (title && !title.hidden) { const r = title.getBoundingClientRect(); if (r.height > 0) uiList.push({ x: 0, y: 0, w, h: r.bottom + 4 }); }
+    for (const sel of ['#title img', '#title .sub', '#who', '#seals', '#crests', '#filters', '#player', '#drawer', '#bar', '#inset', '#card.open', '#card[aria-hidden="false"]']) {
       const el = document.querySelector(sel); if (!el || el.hidden) continue;
       const cs = getComputedStyle(el); if (cs.display === 'none' || cs.opacity === '0' || cs.visibility === 'hidden') continue;
       const r = el.getBoundingClientRect(); if (r.width > 0 && r.height > 0) uiList.push({ x: r.left, y: r.top, w: r.width, h: r.height });
@@ -519,16 +561,78 @@ export async function initRoute(ctx) {
     return uiList.slice();
   }
 
+  // screen rects of the map's own lettering that is showing now (region names, landmarks, place labels), re-read at most every 120 ms.
+  // A region name carries its key and opacity: a day stamp hangs on the name of its region while that name shows.
+  let textAt = -1e9, textList = [];
+  function lettering() {
+    const now = performance.now();
+    if (now - textAt < 120) return textList;
+    textAt = now; textList = [];
+    for (const el of document.querySelectorAll('.rlabel.show, .landmark.show, .plabel.show')) {
+      const r = el.getBoundingClientRect(); if (!(r.width > 0)) continue;
+      const t = el.querySelector('.t'), b = t ? t.getBoundingClientRect() : r;           // the lettering itself (the element has a feathered cloud around it)
+      textList.push({ x: b.left, y: b.top, w: b.width, h: b.height, key: el.classList.contains('rlabel') ? el.dataset.key : null, o: +(el.style.getPropertyValue('--o') || 1) });
+    }
+    return textList;
+  }
+  const STAMP_FREE_MAX = 3200;      // camera distance: farther out, a stamp shows only when it can hang on its region's name (the free spots would pile up)
+
   function updateLabels(dist, w, h) {
     const lf = (1 - smooth(95, 125, dist)) * shown;
-    if (lf < 0.03 || !labels.length) { for (const l of labels) if (l.on) { l.on = false; l.el.classList.remove('show'); } return; }
+    const stampsOn = shown > 0.02 && stamps.length > 0, labelsOn = lf >= 0.03 && labels.length > 0;
+    if (!stampsOn) for (const s of stamps) if (s.on) setStampOn(s, false);
+    if (!labelsOn) for (const l of labels) if (l.on) { l.on = false; l.el.classList.remove('show'); }
+    if (!stampsOn && !labelsOn) return;
     camera.updateMatrixWorld();
     const pins = mapRef && mapRef.pins && mapRef.pins.pins;
-    const blockers = uiRects(w, h);
+    const blockers = uiRects(w, h), seals = [];
     if (pins) for (const p of pins) if (p.sprite.visible && p.alpha > 0.2) {          // seals and their stems
-      blockers.push({ x: p.sx - 16, y: p.sy - 16, w: 32, h: 32 + 14 });
+      seals.push({ x: p.sx - 16, y: p.sy - 16, w: 32, h: 32 + 14, id: p.id });
     }
     const placed = [];
+    // day stamps first: they outrank the station labels. Only the fixed UI, other places' seals (never their own place's) and other stamps hide one.
+    // While the region's name shows (the overview), the stamp hangs on it like a tag: at its right end, or its left end when the right one is off the page.
+    // Otherwise each tries a few spots around its place (right of the stem, then left, stepping down), taking the first that also clears the map's own
+    // lettering (region names, landmarks, place labels); when every spot touches lettering it still shows, on the first spot that is clear of the rest.
+    if (stampsOn) {
+      const text = lettering();
+      for (const s of stamps) {
+        _v.copy(s.pos).applyMatrix4(camera.matrixWorldInverse);
+        let show = _v.z < -camera.near * 1.5;                       // in front of the camera
+        if (show) { _v.applyMatrix4(camera.projectionMatrix); show = _v.z < 1 && Math.abs(_v.x) < 1.05 && Math.abs(_v.y) < 1.05; }
+        if (show) {
+          if (!s.w) { s.w = s.el.offsetWidth; s.h = s.el.offsetHeight; }
+          const sx = (_v.x * 0.5 + 0.5) * w, sy = (-_v.y * 0.5 + 0.5) * h;
+          const hit = (r, o, pad) => r.x < o.x + o.w + pad && r.x + r.w + pad > o.x && r.y < o.y + o.h + pad && r.y + r.h + pad > o.y;
+          const clear = (r) => r.x >= 10 && r.y >= 10 && r.x + r.w <= w - 10 && r.y + r.h <= h - 10 &&      // (10 px: clear of the phone's ink rule)
+            !blockers.some(o => hit(r, o, 0)) && !seals.some(o => o.id !== s.own && hit(r, o, 0)) && !placed.some(o => hit(r, o, 3));
+          let at = null;
+          const name = s.region ? text.find(o => o.key === s.region && o.o >= 0.5) : null;
+          if (name) {
+            const ty = name.y + (name.h - s.h) / 2;
+            for (const r of [{ x: name.x + name.w + 7, y: ty, w: s.w, h: s.h }, { x: name.x - 7 - s.w, y: ty, w: s.w, h: s.h }]) {
+              if (clear(r) && !text.some(o => o !== name && hit(r, o, 1))) { at = r; break; }
+            }
+          }
+          if (!at && dist <= STAMP_FREE_MAX && !blockers.some(o => sx >= o.x && sx <= o.x + o.w && sy >= o.y && sy <= o.y + o.h)) {     // the place itself must not sit under the fixed UI
+            const spots = [];                                                         // top-left corner, from the place's ground point; nearest first
+            for (const dy of [-16, -4, 8, 20, 32]) spots.push([14, dy], [-14 - s.w, dy]);
+            for (const avoidText of [true, false]) {
+              for (const [dx, dy] of spots) {
+                const r = { x: sx + dx, y: sy + dy, w: s.w, h: s.h };
+                if (clear(r) && !(avoidText && text.some(o => hit(r, o, 1)))) { at = r; break; }
+              }
+              if (at) break;
+            }
+          }
+          if (at) { placed.push(at); s.el.style.transform = `translate(${at.x.toFixed(1)}px,${at.y.toFixed(1)}px)`; } else show = false;
+        }
+        if (show) { const o = shown.toFixed(2); if (o !== s.o) { s.o = o; s.el.style.setProperty('--o', o); } }
+        if (show !== s.on) setStampOn(s, show);
+      }
+    }
+    if (!labelsOn) return;
+    for (const o of seals) blockers.push(o);
     const order = labels.slice().sort((a, b) => (activeDay === null ? 0 : (b.days.includes(activeDay) ? 1 : 0) - (a.days.includes(activeDay) ? 1 : 0)));
     for (const l of order) {
       _v.copy(l.pos).applyMatrix4(camera.matrixWorldInverse);
@@ -577,7 +681,7 @@ export async function initRoute(ctx) {
   });
   Object.defineProperties(api, {
     visible: { get: () => wanted > 0 },
-    stats: { get: () => { let v = 0; group.traverse(o => { if (o.geometry && o.geometry.attributes.position) v += o.geometry.attributes.position.count; }); return { vertices: v, lines: lines.size, stations: stations.size, labels: labels.length }; } },
+    stats: { get: () => { let v = 0; group.traverse(o => { if (o.geometry && o.geometry.attributes.position) v += o.geometry.attributes.position.count; }); return { vertices: v, lines: lines.size, stations: stations.size, labels: labels.length, stamps: stamps.length }; } },
     uniforms: { get: () => U },
   });
   return api;

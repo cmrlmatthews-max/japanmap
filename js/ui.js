@@ -83,6 +83,33 @@ export function initUI(cb) {
   const ui = { Store, cardPlace: null, cardOpen: false };
   const body = document.body;
 
+  // ----- phone bottom bar: four tabs -----
+  // body[data-tab] names the open tab. regions, filters and layers show a strip above the bar (CSS does it); trip opens the itinerary sheet.
+  // While the sheet is open data-tab is "trip", and it clears when the sheet closes. A touch on the map closes any strip.
+  const phone = matchMedia('(max-width: 600px)');
+  const tabBtns = $$('#bar .tab');
+  ui.setTab = (t) => { if (t) body.dataset.tab = t; else delete body.dataset.tab; };
+  tabBtns.forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.tab;
+    if (t !== 'trip') { ui.setTab(body.dataset.tab === t ? null : t); return; }
+    const trip = window.__map?.trip;                       // may not exist yet, or has no itinerary
+    if (!trip?.setOpen || !body.classList.contains('has-trip')) return;
+    ui.setTab('trip'); trip.setOpen(true);
+  }));
+  new MutationObserver(() => {
+    if (phone.matches) {
+      const open = body.classList.contains('trip-open'), t = body.dataset.tab;
+      if (open && t !== 'trip') ui.setTab('trip');         // the sheet opened (the tab or its handle): a strip gives way
+      else if (!open && t === 'trip') ui.setTab(null);     // the sheet closed
+    }
+    tabBtns.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === body.dataset.tab)));
+  }).observe(body, { attributes: true, attributeFilter: ['class', 'data-tab'] });
+  phone.addEventListener?.('change', () => ui.setTab(null));
+  $('#map').addEventListener('pointerdown', () => { if (body.dataset.tab && body.dataset.tab !== 'trip') ui.setTab(null); });
+  // the 3D stamp's tip follows its state (app.js flips the "on" class)
+  const b3d = $('#seals [data-layer="3d"]');
+  if (b3d) new MutationObserver(() => { b3d.dataset.tip = b3d.classList.contains('on') ? '3D · Flatten the map' : '3D · Tilt the map up'; }).observe(b3d, { attributes: true, attributeFilter: ['class'] });
+
   // ----- region crests -----
   const crests = $$('#crests .crest');
   ui.setActiveRegion = (id) => {
@@ -90,7 +117,10 @@ export function initUI(cb) {
     const r = REGION_INFO[id]; if (!r) return;
     $('#region .en').textContent = r.en;
   };
-  crests.forEach(b => b.addEventListener('click', () => cb.onRegion(b.dataset.region)));
+  crests.forEach(b => b.addEventListener('click', () => {
+    if (phone.matches && body.dataset.tab === 'regions') ui.setTab(null);   // the strip closes first, so the fly-to aims at the whole free area
+    cb.onRegion(b.dataset.region);
+  }));
 
   // ----- category filter -----
   const catBtns = $$('#filters .seal');

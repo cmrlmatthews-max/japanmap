@@ -102,10 +102,11 @@ export const overlaps = (a, b, pad = 3) => a.x < b.x + b.w + pad && a.x + a.w + 
 // ---------- the pin layer ----------
 export class Pins {
   /**
-   * opts: { scene, camera, canvas, labelHost, places, lonLatToWorld, heightAtWorld }
+   * opts: { scene, camera, canvas, labelHost, places, lonLatToWorld, heightAtWorld, view }
+   * view (optional): the app's view object { blend, wpp(dist) }. blend 0 = perspective, 1 = flat orthographic map, between = the 2D/3D flight.
    */
   constructor(opts) {
-    Object.assign(this, { scene: opts.scene, camera: opts.camera, canvas: opts.canvas, host: opts.labelHost, heightAt: opts.heightAtWorld });
+    Object.assign(this, { scene: opts.scene, camera: opts.camera, canvas: opts.canvas, host: opts.labelHost, heightAt: opts.heightAtWorld, view: opts.view || null });
     this.group = new THREE.Group(); this.scene.add(this.group);
     this.textures = {};
     this.choices = {};
@@ -142,7 +143,7 @@ export class Pins {
     this.setChoices({});
     const remeasure = () => this.pins.forEach(p => { p.lw = 0; });
     if (document.fonts) { document.fonts.ready.then(remeasure); document.fonts.addEventListener?.('loadingdone', remeasure); }
-    this._v = new THREE.Vector3(); this._top = new THREE.Vector3();
+    this._v = new THREE.Vector3(); this._top = new THREE.Vector3(); this._fwd = new THREE.Vector3();
   }
 
   stateOf(pin) {
@@ -194,7 +195,12 @@ export class Pins {
     const distFade = 1 - smooth(FADE.pinsFull, FADE.pinsGone, dist);
     const labelFade = 1 - smooth(FADE.labelsFull, FADE.labelsGone, dist);
     const tanHalf = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2));
-    const spriteScale = PIN_PX * 2 * tanHalf / h;                      // sizeAttenuation=false: scale is a fraction of view height
+    // Pure perspective: sizeAttenuation=false makes the scale a fraction of the view height. Once the projection is blended toward the flat map
+    // (blend > 0) three's sprite shader stops multiplying by depth, so the scale is in world units: PIN_PX * (world units per CSS px at the pin).
+    const view = this.view, bl = view ? view.blend : 0, flat = bl >= 1, blended = bl > 0;
+    const spriteScale = PIN_PX * 2 * tanHalf / h;
+    const wpp2d = flat ? view.wpp(dist) : 0;                           // 2D: the same everywhere
+    const fwd = blended && !flat ? cam.getWorldDirection(this._fwd) : null;
     const anyOn = distFade > 0.002;
     const vis = [];
     for (const p of this.pins) {
@@ -202,10 +208,17 @@ export class Pins {
       let target = 0;
       if (on) {
         const dp = cam.position.distanceTo(p.ground);
-        const wpp = 2 * tanHalf * dp / h;                               // world units per CSS px at this pin
+        // world units per CSS px at this pin. Blend: the blended matrix's own scale at the pin's view depth ((1-k)*depth + k against (1-k)*dist + k),
+        // equal to the perspective value at k = 0 and to the 2D value at k = 1, so a seal reads PIN_PX at every depth all the way through the flight.
+        let wpp;
+        if (flat) wpp = wpp2d;
+        else if (blended) {
+          const depth = Math.max(0.05, (p.ground.x - cam.position.x) * fwd.x + (p.ground.y - cam.position.y) * fwd.y + (p.ground.z - cam.position.z) * fwd.z);
+          wpp = 2 * tanHalf * dist / h * ((1 - bl) * depth + bl) / ((1 - bl) * dist + bl);
+        } else wpp = 2 * tanHalf * dp / h;
         const lift = (STEM_PX + PIN_PX / 2) * wpp;
         this._top.set(p.ground.x, p.ground.y + lift, p.ground.z);
-        const occ = distFade > 0.05 ? this._occluded(this._top, this.heightAt) : false;
+        const occ = distFade > 0.05 && !flat ? this._occluded(this._top, this.heightAt) : false;   // nothing hides a pin on the flat map
         p.pickable = !occ && distFade > 0.4;
         target = (p.state === 'pass' ? 0.2 : 1) * distFade * (occ ? 0.12 : 1);
         p.top = p.top || new THREE.Vector3(); p.top.copy(this._top); p.wpp = wpp;
@@ -227,7 +240,8 @@ export class Pins {
       // pulse / selected scale
       let sc = p.id === this.selectedId ? 1.18 : 1;
       if (p.pulse >= 0) { p.pulse += dt / 0.8; if (p.pulse >= 1) p.pulse = -1; else sc *= 1 + 0.5 * Math.sin(p.pulse * Math.PI); }
-      p.sprite.scale.set(spriteScale * sc, spriteScale * sc, 1);
+      const sz = (blended ? PIN_PX * p.wpp : spriteScale) * sc;
+      p.sprite.scale.set(sz, sz, 1);
       p.sprite.position.copy(p.top);
       const a = p.line.geometry.attributes.position;
       a.setXYZ(0, p.ground.x, p.ground.y, p.ground.z); a.setXYZ(1, p.ground.x, p.ground.y + STEM_PX * p.wpp, p.ground.z); a.needsUpdate = true;
