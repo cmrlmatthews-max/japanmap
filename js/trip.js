@@ -4,6 +4,7 @@
 import { DOCK_MQ } from './ui.js';
 import { CATS } from './pins.js';
 import { iconSVG } from './icons.js';
+import { linesKey } from './legend.js';
 
 const PAUSE_S = 3;                                  // seconds held at each stop
 const STOP_DIST = 34, STOP_DIST_2D = 40, STOP_POLAR = 45;      // the stop pose: same distance as a place fly-to (the flat map sits a little farther)
@@ -252,7 +253,7 @@ export function initTrip(ctx, route) {
   const bodyBox = h('div', 'd-body');
   const dayBox = h('div', 'd-day'), list = h('ol', 'd-stops');
   bodyBox.append(dayBox, list);
-  full.append(top, tabsEl, bodyBox);
+  full.append(top, tabsEl, linesKey(), bodyBox);
   const spine = h('button', 'd-spine'); spine.type = 'button'; spine.setAttribute('aria-label', 'Open the itinerary');
   const spN = h('span', 'sp-n'), spK = h('span', 'sp-k'), spC = h('span', 'sp-c'); spC.innerHTML = SVG.right;
   spine.append(spC, spN, spK);

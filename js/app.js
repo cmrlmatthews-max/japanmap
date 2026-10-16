@@ -10,6 +10,7 @@ import { initFlatMap } from './flatmap.js';
 import { initInset } from './inset.js';
 import { initMarker } from './marker.js';
 import { initArt } from './art.js';
+import { initLegend } from './legend.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#map'), scrollEl = $('#scroll');
@@ -518,6 +519,7 @@ async function init() {
   try { inset = initInset(ctx); } catch (e) { console.error('inset', e); }
   try { marker = initMarker(ctx, route, trip); marker.setVisible(state.route); } catch (e) { console.error('marker', e); }
   try { art = await initArt(ctx); } catch (e) { console.error('art', e); }
+  try { initLegend(); } catch (e) { console.error('legend', e); }
 
   const landmark = (lon, lat) => { const p = lonLatToWorld(lon, lat); p.y = heightAtWorld(p.x, p.z) + 0.6; return p; };
   const fuji = landmark(138.7274, 35.3606), ashi = landmark(139.005, 35.205), owak = landmark(139.0265, 35.2423);

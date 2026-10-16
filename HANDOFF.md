@@ -146,7 +146,8 @@ Notes to recheck before the trip:
 - Markdown for all docs. Short sentences (ASD-STE100 style).
 - Phase 3 (2026-10-13): nights Tokyo 3 · Kawaguchiko 1 · Hakone 1 · Kyoto 3 · Osaka 1. Route order Tokyo → Fuji → Hakone → Kyoto → Nara → Osaka, fly home from KIX.
 - Two itinerary files (`itinerary-cade.json`, `itinerary-casey.json`), same format. Casey's starts as a copy. Merge is Phase 5.
-- Route styles: Shinkansen thick vermilion dashes, local thin ink, walk dots, bus thin grey, boat thin wavy, ropeway thin with ticks.
+- Route styles (2026-10-16, Cade): each mode has its own colour, dash and weight, about 25 percent thicker than before. Bullet train vermilion #C8341E 5 px, long dashes 22/8. Train (local, cable car) indigo #2E4A7A 3.75 px, dashes 12/6. Bus ochre #B07A2A 3.3 px, dashes 6/5. Boat teal #3E7C7A 3.3 px, dash-dot. Ropeway plum #7A3E5A 2.9 px, dashes with cable ticks. Walk ink dots 3.5 px every 9 px. Each dash has a soft paper halo. Legs that share a track sit side by side in lanes 6.5 px apart (subway-map style, `laneOffsets` in js/route.js). Other days show at 75 percent. Cade accepted the four extra colours as an exception to the one-accent palette, for the travel lines only.
+- Line legend (js/legend.js, css/legend.css): a "Lines" tab above the map key opens the six swatches; the same key sits at the top of the itinerary sheet. `LINE_MODES` in legend.js must match the shader in route.js.
 - Fly-through: one scrub bar for the whole trip. Hop 6 to 8 s, pause 3 s.
 - Drawer: bottom sheet on iPhone portrait (and iPad portrait), docked right on iPad landscape and iPhone landscape.
 - Tooltips are plain English help: hover on the Mac, long press on touch. No tooltips on map pins.

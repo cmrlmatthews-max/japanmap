@@ -23,7 +23,7 @@ const smooth = (a, b, t) => { t = clamp01((t - a) / (b - a)); return t * t * (3 
 const vert = /* glsl */`
 attribute vec3 aPrev;
 attribute vec3 aNext;
-attribute float aSide, aEnd, aS, aF, aLeg, aDay, aStyle, aSeed;
+attribute float aSide, aEnd, aS, aF, aLeg, aDay, aStyle, aSeed, aOff;
 uniform vec2 uRes;       // canvas size in CSS px
 uniform float uNear;     // near clip distance (view space, positive)
 uniform float uK;        // px per world unit at the camera target (for tick length)
@@ -31,12 +31,12 @@ varying vec2 vXY;        // x: signed overshoot past the stroke end (px), y: cro
 varying float vS, vF, vLeg, vDay, vStyle, vSeed;
 
 float halfExtent(float st) {
-  if (st < 0.5) return 3.6;
-  if (st < 1.5) return 2.3;
-  if (st < 2.5) return 2.6;
-  if (st < 3.5) return 2.0;
-  if (st < 4.5) return 3.3;
-  if (st < 5.5) return 4.4;
+  if (st < 0.5) return 5.2;                        // trip strokes: half width plus room for the paper halo (HALO px)
+  if (st < 1.5) return 4.4;
+  if (st < 2.5) return 4.2;
+  if (st < 3.5) return 4.2;
+  if (st < 4.5) return 4.2;
+  if (st < 5.5) return 5.4;
   if (st < 6.5) return 1.3;
   if (st < 7.5) return 1.5;
   return 1.9;
@@ -73,7 +73,7 @@ void main() {
   vec2 m = nIn + nOut; float ml = length(m);
   m = ml > 1e-3 ? m / ml : nOut;
   float sc = 1.0 / max(dot(m, nOut), 0.5);          // miter, clamped: sharp corners get a blunt join
-  vec2 off = m * aSide * R * sc;
+  vec2 off = m * (aSide * R + aOff) * sc;            // aOff: lane offset in px where several legs share one track (subway-map style)
   float over = 0.0;
   if (abs(e) > 1.5) { off += tOut * sign(e) * R; over = sign(e) * R; }   // cap rows: pushed past the end, round in the fragment shader
   gl_Position = c;
@@ -99,6 +99,13 @@ const vec3 VERM = vec3(200.0, 52.0, 30.0) / 255.0;
 const vec3 INK  = vec3(44.0, 44.0, 42.0) / 255.0;
 const vec3 GD   = vec3(91.0, 89.0, 82.0) / 255.0;
 const vec3 GM   = vec3(142.0, 139.0, 130.0) / 255.0;
+const vec3 PAPER = vec3(245.0, 239.0, 224.0) / 255.0;
+const vec3 INDIGO = vec3(46.0, 74.0, 122.0) / 255.0;     // local train  #2E4A7A
+const vec3 OCHRE  = vec3(176.0, 122.0, 42.0) / 255.0;    // bus          #B07A2A
+const vec3 TEAL   = vec3(62.0, 124.0, 122.0) / 255.0;    // boat         #3E7C7A
+const vec3 PLUM   = vec3(122.0, 62.0, 90.0) / 255.0;     // ropeway      #7A3E5A
+// a rounded dash: pc = position in the period, centred on the dash; hl = half length; w = half width
+float dash(float pc, float cd, float hl, float w) { return w - length(vec2(max(abs(pc) - (hl - w), 0.0), cd)); }
 
 void main() {
   float st = floor(vStyle + 0.5), leg = floor(vLeg + 0.5), day = floor(vDay + 0.5);
@@ -108,37 +115,37 @@ void main() {
   float n1 = vn(vec2(sp * 0.07 + seed * 17.0, seed * 3.1));        // slow width variation along the stroke
   float n2 = vn(vec2(sp * 0.8 + seed * 5.0, cd * 1.1 + 11.0));    // dry-brush grain
   float n3 = vn(vec2(sp * 0.045 + seed * 9.0, 7.7));               // slow ink density
-  float wob = 0.8 + 0.45 * n1;
-  if (st < 5.5) cd += (vn(vec2(sp * 0.03 + seed * 11.0, 3.3)) - 0.5) * 1.5;   // the hand wanders a little off the line
+  float wob = 0.9 + 0.2 * n1;                                      // a little width variation (crisp enough to read the dash code)
+  if (st < 5.5) cd += (vn(vec2(sp * 0.03 + seed * 11.0, 3.3)) - 0.5) * 0.6;   // the hand wanders a little off the line (kept small: lanes sit side by side)
   float pool = exp(-max(sp, 0.0) / 24.0);                          // ink pools at the start of a stroke
   vec3 col = INK; float base = 0.9, e = -1.0;                      // e: px inside the stroke edge
 
-  if (st < 0.5) {                                                  // shinkansen: round-ended vermilion dashes, 14 on / 9 off
-    float w = 2.5 * wob, pc = mod(sp + 4.5, 23.0) - 11.5;
-    float d = length(vec2(max(abs(pc) - (7.0 - w), 0.0), cd));
-    e = w - d; col = VERM; base = 0.94;
-  } else if (st < 1.5) {                                           // local, funicular: thin ink
-    float w = 1.05 * wob; e = w - length(vec2(capd, cd)); base = 0.9;
-  } else if (st < 2.5) {                                           // walk: round dots, 2.5 px, every 7 px
-    float cell = floor((sp + 3.5) / 7.0);
-    float pc = mod(sp + 3.5, 7.0) - 3.5 + (hash12(vec2(cell, seed * 31.0)) - 0.5) * 0.7;
-    float jy = (hash12(vec2(cell + 17.0, seed * 13.0)) - 0.5) * 0.7;
-    float w = 1.25 * (0.88 + 0.26 * hash12(vec2(cell, seed * 7.0 + 3.0)));
-    e = w - length(vec2(pc, cd - jy)); col = GD; base = 0.9;
+  // trip modes: each has its own colour, dash and weight (see the legend, js/legend.js). Full widths: 5, 3.75, 3.3, 3.3, 2.9, 3.5 px.
+  if (st < 0.5) {                                                  // bullet train: vermilion, long dashes 22 on / 8 off
+    float w = 2.5 * wob, pc = mod(sp + 11.0, 30.0) - 15.0;
+    e = dash(pc, cd, 11.0, w); col = VERM; base = 0.95;
+  } else if (st < 1.5) {                                           // local train, funicular: indigo, medium dashes 12 on / 6 off
+    float w = 1.88 * wob, pc = mod(sp + 6.0, 18.0) - 9.0;
+    e = dash(pc, cd, 6.0, w); col = INDIGO; base = 0.93;
+  } else if (st < 2.5) {                                           // walk: ink dots, 3.5 px, every 9 px
+    float cell = floor((sp + 4.5) / 9.0);
+    float pc = mod(sp + 4.5, 9.0) - 4.5 + (hash12(vec2(cell, seed * 31.0)) - 0.5) * 0.6;
+    float w = 1.75 * (0.9 + 0.2 * hash12(vec2(cell, seed * 7.0 + 3.0)));
+    e = w - length(vec2(pc, cd)); col = INK; base = 0.9;
     if (capd > 0.0) e = -1.0;
-  } else if (st < 3.5) {                                           // bus: thin warm grey with a slight dash (3 px gap every 26 px)
-    float w = 0.8 * wob, ph = mod(sp, 26.0);
-    e = w - length(vec2(capd, cd)); col = GM; base = 0.85;
-    base *= smoothstep(0.0, 1.4, ph - 3.0);
-  } else if (st < 4.5) {                                           // boat: thin stroke riding a gentle wave
-    float off = 1.15 * sin(sp * 0.36 + seed * 6.28);
-    float w = 0.78 * wob; e = w - length(vec2(capd, cd - off)); col = GD; base = 0.88;
-  } else if (st < 5.5) {                                           // ropeway: thin stroke with cable ticks every 10 px
-    float w = 0.72 * wob;
-    float core = w - length(vec2(capd, cd));
-    float t = abs(mod(sp, 10.0) - 5.0);
-    float tk = (capd > 0.0) ? -1.0 : min(0.62 - t, 3.3 - abs(cd));
-    e = max(core, tk); base = 0.9;
+  } else if (st < 3.5) {                                           // bus: ochre, short dashes 6 on / 5 off
+    float w = 1.65 * wob, pc = mod(sp + 3.0, 11.0) - 5.5;
+    e = dash(pc, cd, 3.0, w); col = OCHRE; base = 0.93;
+  } else if (st < 4.5) {                                           // boat: teal dash-dot (10 dash, gap, dot, gap: period 20)
+    float w = 1.65 * wob, ph = mod(sp, 20.0);
+    float dd = dash(ph - 5.0, cd, 5.0, w);
+    float dt = w - length(vec2(ph - 15.0, cd));
+    e = max(dd, dt); col = TEAL; base = 0.93;
+  } else if (st < 5.5) {                                           // ropeway, cable car: plum dashes 10 on / 4 off with a cable tick in each gap
+    float w = 1.45 * wob, ph = mod(sp, 14.0);
+    float core = dash(ph - 5.0, cd, 5.0, w);
+    float tk = (capd > 0.0) ? -1.0 : min(0.7 - abs(ph - 12.0), 3.6 - abs(cd));
+    e = max(core, tk); col = PLUM; base = 0.93;
   } else if (st < 7.5) {                                           // rail network: faint hairline
     float w = (st < 6.5 ? 0.5 : 0.68); e = w - length(vec2(capd, cd));
     col = GM; base = st < 6.5 ? 0.35 : 0.52;
@@ -147,15 +154,21 @@ void main() {
   }
 
   float cov = smoothstep(-0.5, 0.5, e);
-  cov *= 1.0 - 0.5 * (1.0 - smoothstep(0.15, 1.5, e)) * smoothstep(0.45, 0.75, n2) * (st < 5.5 || st > 7.5 ? 1.0 : 0.0);   // dry-brush break-up near the edges
-  float a = clamp(base * (0.88 + 0.12 * n3 + 0.3 * pool * (st < 5.5 ? 1.0 : 0.0)), 0.0, 1.0) * cov;
-  col *= 1.0 - 0.16 * pool * (st < 5.5 ? 1.0 : 0.0);               // ... and darkens a little there
+  cov *= 1.0 - 0.35 * (1.0 - smoothstep(0.15, 1.5, e)) * smoothstep(0.5, 0.78, n2) * (st < 5.5 || st > 7.5 ? 1.0 : 0.0);   // dry-brush break-up near the edges
+  float a = clamp(base * (0.9 + 0.1 * n3 + 0.2 * pool * (st < 5.5 ? 1.0 : 0.0)), 0.0, 1.0) * cov;
+  col *= 1.0 - 0.12 * pool * (st < 5.5 ? 1.0 : 0.0);               // ... and darkens a little there
+  // a soft paper halo around each trip dash and dot, so the colours read on the dark mountains too
+  if (st < 5.5) {
+    float halo = (1.0 - smoothstep(0.4, 1.8, -e)) * 0.62;
+    float A = a + halo * (1.0 - a);
+    col = A > 0.0 ? (col * a + PAPER * halo * (1.0 - a)) / A : col; a = A;
+  }
 
   float k = uOpacity;
   if (st > 5.5 && st < 7.5) k *= uCtxOpacity;
   else {
-    float fa = (uDay < -0.5 || abs(day - uDay) < 0.5) ? 1.0 : 0.3;
-    float fb = (uDayPrev < -0.5 || abs(day - uDayPrev) < 0.5) ? 1.0 : 0.3;
+    float fa = (uDay < -0.5 || abs(day - uDay) < 0.5) ? 1.0 : 0.75;
+    float fb = (uDayPrev < -0.5 || abs(day - uDayPrev) < 0.5) ? 1.0 : 0.75;
     k *= mix(fb, fa, uDayMix);
     float rv = 1.0;                                                // progressive reveal: earlier legs whole, the current leg up to uPT
     if (leg > uPLeg + 0.5) rv = 0.0;
@@ -208,6 +221,45 @@ function curve(a, b, hash) {
   return out;
 }
 
+// ---------- lanes: legs that share a track sit side by side, like a subway map ----------
+// For every vertex of every stroke, find the other legs that run along the same track there (a segment closer than NEAR, roughly parallel).
+// The legs on that stretch are ranked by their order in the trip; each one takes a lane, centred on the track. The offset is in screen px,
+// signed against one shared direction (the first leg's), so a leg that runs the other way still lands on its own lane. Then it is smoothed
+// along the stroke, so a leg glides into its lane where the tracks meet instead of stepping.
+const LANE_PX = 6.5, NEAR = 0.14, PARALLEL = 0.82, SMOOTH = 4;
+function laneOffsets(list) {
+  const CELL = 0.5, grid = new Map(), key = (i, j) => i * 73856093 ^ j * 19349663;
+  list.forEach((q, si) => { for (let k = 1; k < q.pts.length; k++) {
+    const a = q.pts[k - 1], b = q.pts[k];
+    const i0 = Math.floor(Math.min(a[0], b[0]) / CELL), i1 = Math.floor(Math.max(a[0], b[0]) / CELL), j0 = Math.floor(Math.min(a[2], b[2]) / CELL), j1 = Math.floor(Math.max(a[2], b[2]) / CELL);
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const kk = key(i, j); let c = grid.get(kk); if (!c) grid.set(kk, c = []); c.push([si, k]); }
+  } });
+  return list.map((q, si) => {
+    const n = q.pts.length, raw = new Float32Array(n);
+    for (let k = 0; k < n; k++) {
+      const p = q.pts[k], a = q.pts[Math.max(0, k - 1)], b = q.pts[Math.min(n - 1, k + 1)];
+      let dx = b[0] - a[0], dz = b[2] - a[2]; const dl = Math.hypot(dx, dz) || 1; dx /= dl; dz /= dl;
+      const best = new Map();                               // leg order -> { d, dir }
+      const gi = Math.floor(p[0] / CELL), gj = Math.floor(p[2] / CELL);
+      for (let i = gi - 1; i <= gi + 1; i++) for (let j = gj - 1; j <= gj + 1; j++) for (const [oi, ok] of grid.get(key(i, j)) || []) {
+        const o = list[oi]; if (o.order === q.order) continue;
+        const s0 = o.pts[ok - 1], s1 = o.pts[ok]; let ex = s1[0] - s0[0], ez = s1[2] - s0[2]; const el = Math.hypot(ex, ez); if (el < 1e-6) continue; ex /= el; ez /= el;
+        if (Math.abs(ex * dx + ez * dz) < PARALLEL) continue;
+        const d = segDist([p[0], p[2]], [s0[0], s0[2]], [s1[0], s1[2]]); if (d > NEAR) continue;
+        const cur = best.get(o.order); if (!cur || d < cur.d) best.set(o.order, { d, dir: [ex, ez] });
+      }
+      if (!best.size) continue;
+      const orders = [q.order, ...best.keys()].sort((x, y) => x - y), rank = orders.indexOf(q.order);
+      const ref = orders[0] === q.order ? [dx, dz] : best.get(orders[0]).dir;
+      const sgn = (dx * ref[0] + dz * ref[1]) >= 0 ? 1 : -1;
+      raw[k] = (rank - (orders.length - 1) / 2) * LANE_PX * sgn;
+    }
+    const out = new Array(n);
+    for (let k = 0; k < n; k++) { let t = 0, c = 0; for (let m = Math.max(0, k - SMOOTH); m <= Math.min(n - 1, k + SMOOTH); m++) { t += raw[m]; c++; } out[k] = t / c; }
+    return out;
+  });
+}
+
 class RailLine {
   constructor(feature, toWorld) {
     this.id = feature.properties.id; this.type = feature.properties.type; this.name = feature.properties.name;
@@ -239,11 +291,11 @@ class RailLine {
 
 // ---------- ribbon geometry builder ----------
 class Builder {
-  constructor() { this.pos = []; this.prev = []; this.next = []; this.side = []; this.end = []; this.s = []; this.f = []; this.leg = []; this.day = []; this.style = []; this.seed = []; this.idx = []; this.rows = 0; }
-  row(p, pv, nx, end, s, f, leg, day, style, seed) {
+  constructor() { this.pos = []; this.prev = []; this.next = []; this.side = []; this.end = []; this.s = []; this.f = []; this.leg = []; this.day = []; this.style = []; this.seed = []; this.off = []; this.idx = []; this.rows = 0; }
+  row(p, pv, nx, end, s, f, leg, day, style, seed, off = 0) {
     for (const side of [-1, 1]) {
       this.pos.push(p[0], p[1], p[2]); this.prev.push(pv[0], pv[1], pv[2]); this.next.push(nx[0], nx[1], nx[2]);
-      this.side.push(side); this.end.push(end); this.s.push(s); this.f.push(f); this.leg.push(leg); this.day.push(day); this.style.push(style); this.seed.push(seed);
+      this.side.push(side); this.end.push(end); this.s.push(s); this.f.push(f); this.leg.push(leg); this.day.push(day); this.style.push(style); this.seed.push(seed); this.off.push(off);
     }
     this.rows++;
   }
@@ -251,15 +303,15 @@ class Builder {
     for (let r = first; r < first + count - 1; r++) { const a = 2 * r, b = 2 * r + 2; this.idx.push(a, a + 1, b, a + 1, b + 1, b); }
   }
   // pts: [[x,y,z]...], fr: fraction along the leg for each point
-  stroke(pts, fr, style, leg, day, seed) {
-    const P = [], F = [];
-    for (let i = 0; i < pts.length; i++) { const q = P[P.length - 1]; if (q && Math.hypot(pts[i][0] - q[0], pts[i][1] - q[1], pts[i][2] - q[2]) < 1e-6) continue; P.push(pts[i]); F.push(fr[i]); }
+  stroke(pts, fr, style, leg, day, seed, offs = null) {
+    const P = [], F = [], O = [];
+    for (let i = 0; i < pts.length; i++) { const q = P[P.length - 1]; if (q && Math.hypot(pts[i][0] - q[0], pts[i][1] - q[1], pts[i][2] - q[2]) < 1e-6) continue; P.push(pts[i]); F.push(fr[i]); O.push(offs ? offs[i] : 0); }
     const n = P.length; if (n < 2) return;
     const s = [0]; for (let i = 1; i < n; i++) s.push(s[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]));
     const first = this.rows;
-    this.row(P[0], P[0], P[1], -2, 0, F[0], leg, day, style, seed);
-    for (let i = 0; i < n; i++) this.row(P[i], P[Math.max(0, i - 1)], P[Math.min(n - 1, i + 1)], i === 0 ? -1 : i === n - 1 ? 1 : 0, s[i], F[i], leg, day, style, seed);
-    this.row(P[n - 1], P[n - 2], P[n - 1], 2, s[n - 1], F[n - 1], leg, day, style, seed);
+    this.row(P[0], P[0], P[1], -2, 0, F[0], leg, day, style, seed, O[0]);
+    for (let i = 0; i < n; i++) this.row(P[i], P[Math.max(0, i - 1)], P[Math.min(n - 1, i + 1)], i === 0 ? -1 : i === n - 1 ? 1 : 0, s[i], F[i], leg, day, style, seed, O[i]);
+    this.row(P[n - 1], P[n - 2], P[n - 1], 2, s[n - 1], F[n - 1], leg, day, style, seed, O[n - 1]);
     this.strip(first, this.rows - first);
   }
   tick(center, dir, f, leg, day, seed) {         // dir: unit [x,y,z] across the line
@@ -273,7 +325,7 @@ class Builder {
     const g = new THREE.BufferGeometry(), A = (n, arr, k) => g.setAttribute(n, new THREE.BufferAttribute(new Float32Array(arr), k));
     A('position', this.pos, 3); A('aPrev', this.prev, 3); A('aNext', this.next, 3);
     A('aSide', this.side, 1); A('aEnd', this.end, 1); A('aS', this.s, 1); A('aF', this.f, 1); A('aLeg', this.leg, 1);
-    A('aDay', this.day, 1); A('aStyle', this.style, 1); A('aSeed', this.seed, 1);
+    A('aDay', this.day, 1); A('aStyle', this.style, 1); A('aSeed', this.seed, 1); A('aOff', this.off, 1);
     g.setIndex(new THREE.BufferAttribute(new Uint32Array(this.idx), 1));
     g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 1e5);
     return g;
@@ -408,7 +460,7 @@ export async function initRoute(ctx) {
     let order = 0;
     stopPos = new Map(); stationPos = new Map();
     for (const [id, st] of stations) stationPos.set(id, new THREE.Vector3(st.x, surfaceY(st.x, st.z) + 0.03, st.z));
-    const tickList = [];
+    const tickList = [], pending = [];
     (it.days || []).forEach((day, di) => {
       legs[di] = [];
       for (const sid of day.stops || []) { const xz = placeXZ(sid); if (xz && !stopPos.has(sid)) stopPos.set(sid, new THREE.Vector3(xz[0], surfaceY(xz[0], xz[1]) + 0.03, xz[1])); }
@@ -422,7 +474,7 @@ export async function initRoute(ctx) {
         const seed = (hashStr(leg.from + '|' + leg.to) % 997) / 997;
         const all = [], allCum = [];
         dr.forEach((pts, si) => {
-          B.stroke(pts, cums[si].map(c => c / total), strokes[si].style, myOrder, di, (seed + si * 0.137) % 1);
+          pending.push({ pts, fr: cums[si].map(c => c / total), style: strokes[si].style, order: myOrder, day: di, seed: (seed + si * 0.137) % 1 });
           pts.forEach((p, i) => { if (all.length && Math.hypot(p[0] - all[all.length - 1].x, p[1] - all[all.length - 1].y, p[2] - all[all.length - 1].z) < 1e-6) return; all.push(new THREE.Vector3(p[0], p[1], p[2])); allCum.push(cums[si][i]); });
         });
         legs[di][li] = { order: myOrder, from: leg.from, to: leg.to, mode: leg.mode, minutes: leg.minutes, pts: all, cum: Float32Array.from(allCum), len: total };
@@ -436,6 +488,8 @@ export async function initRoute(ctx) {
         }
       });
     });
+    const offs = laneOffsets(pending);
+    pending.forEach((q, i) => B.stroke(q.pts, q.fr, q.style, q.order, q.day, q.seed, offs[i]));
     for (const t of tickList) B.tick(t.c, t.dir, t.f, t.order, t.day, t.seed);
     const g = B.geometry();
     if (g) { tripMesh = new THREE.Mesh(g, tripMat); tripMesh.frustumCulled = false; tripMesh.renderOrder = 3; tripMesh.name = 'route-trip'; group.add(tripMesh); }
