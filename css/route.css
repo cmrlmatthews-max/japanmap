@@ -30,3 +30,11 @@
 .dstamp:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 @media (pointer: coarse) { .dstamp::before { content: ''; position: absolute; inset: -5px; } }      /* a roomier touch target; stays clear of the place's own seal */
 @media (prefers-reduced-motion: reduce) { .dstamp { transition: none; } }
+
+/* Day stamps live inside the city name (.rlabel) and move with it. Hidden until the name is tapped. */
+.rlabel.show .t { pointer-events: auto; cursor: pointer; }
+.rlabel .dstamps { position: absolute; left: 100%; top: 50%; transform: translateY(-50%); margin-left: 6px; display: flex; gap: 4px; }
+.rlabel.side-left .dstamps { left: auto; right: 100%; margin: 0 6px 0 0; }
+.rlabel .dstamp { position: relative; left: auto; top: auto; transform: none; }
+.rlabel:not(.show) .dstamp { pointer-events: none; }
+.rlabel .dstamps.flip { left: auto; right: 100%; margin: 0 6px 0 0; }

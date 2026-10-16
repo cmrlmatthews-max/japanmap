@@ -325,7 +325,11 @@ function addMark(kind, text, pos, key, side = 'top') {
   el.className = (kind === 'region' ? 'rlabel' : 'landmark') + ' side-' + side;
   el.innerHTML = '<span class="t"></span>' + (kind === 'region' ? '<b class="dot"></b>' : '');
   el.firstChild.textContent = text;                          // English lettering only
-  el.dataset.key = key;                                      // route.js hangs the day stamps on the region names
+  el.dataset.key = key;                                      // route.js puts the day stamps inside the region names
+  if (kind === 'region') el.firstChild.addEventListener('click', (e) => {   // tap a city name: its day stamps show beside it (tap again to hide)
+    e.stopPropagation();
+    if (route && route.toggleStamps && route.hasStamps(key)) route.toggleStamps(key);
+  });
   scrollEl.appendChild(el);
   marks.push({ el, pos, kind, key, side, w: 0, h: 0, on: false });
 }
@@ -447,6 +451,7 @@ const endPointer = (e) => {
   if (e.type !== 'pointerup' || !t.ok || performance.now() - t.t > 350 || !pins) return;
   const r = canvas.getBoundingClientRect();
   const hit = pins.pick(e.clientX - r.left, e.clientY - r.top);
+  if (route && route.closeStamps) route.closeStamps();
   if (hit) openPlace(hit.id); else if (ui.cardOpen) ui.closeCard();
 };
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);

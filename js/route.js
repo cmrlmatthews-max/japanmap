@@ -356,7 +356,7 @@ export async function initRoute(ctx) {
   const api = { itinerary: null, who: null };
   let legs = [];                 // legs[day][i] = { order, from, to, mode, minutes, pts:[Vector3], cum:Float32Array, len }
   let tripMesh = null, labels = [], stamps = [], stopPos = new Map(), stationPos = new Map(), buildToken = 0;
-  let wanted = 1, shown = 1, activeDay = null, dayMix = 1;
+  let wanted = 1, shown = 1, activeDay = null, dayMix = 1, openRegion = null;     // openRegion: the city whose name was tapped (its day stamps show)
 
   function disposeTrip() {
     if (tripMesh) { group.remove(tripMesh); tripMesh.geometry.dispose(); tripMesh = null; }
@@ -473,17 +473,19 @@ export async function initRoute(ctx) {
       const a = g.first + 1, b = g.last + 1;
       const name = stayP ? (stayP.short || stayP.name) : ((ctx.REGION_INFO && ctx.REGION_INFO[g.region]) || {}).en || '';
       const tip = [a === b ? `Day ${a}` : `Day ${a}–${b}`, nights > 0 ? `${nights} night${nights === 1 ? '' : 's'}` : '', name].filter(Boolean).join(' · ');
-      const el = document.createElement('div'), t = document.createElement('b');
+      const el = document.createElement('span'), t = document.createElement('b');
       el.className = 'dstamp'; t.textContent = a === b ? String(a) : `${a}–${b}`; el.appendChild(t);
       el.dataset.tip = tip; el.setAttribute('role', 'button'); el.tabIndex = -1; el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-label', tip.replace(/ · /g, ', '));
       const go = () => { const tr = mapRef && mapRef.trip; if (tr && typeof tr.setDay === 'function') tr.setDay(g.first); };
-      el.addEventListener('click', go);
+      el.addEventListener('click', (e) => { e.stopPropagation(); go(); });
       el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); go(); } });   // stopPropagation: Space must not also play the trip
-      scrollEl.appendChild(el);
-      stamps.push({ el, own: anchorId, region: g.region, first: g.first, pos: new THREE.Vector3(xz[0], surfaceY(xz[0], xz[1]) + 0.03, xz[1]), on: false, w: 0, h: 0, o: '' });
+      stamps.push({ el, host: null, own: anchorId, region: g.region, first: g.first, pos: new THREE.Vector3(xz[0], surfaceY(xz[0], xz[1]) + 0.03, xz[1]), on: false, w: 0, h: 0, o: '' });
     }
     api.stampCount = stamps.length;
   }
+  api.toggleStamps = (region) => { openRegion = openRegion === region ? null : region; return openRegion; };
+  api.closeStamps = () => { openRegion = null; };
+  api.hasStamps = (region) => stamps.some(s => s.region === region);
   if (typeof document !== 'undefined' && document.fonts) {                  // the stamp width depends on the label font
     const remeasure = () => { for (const s of stamps) s.w = 0; };
     document.fonts.ready.then(remeasure); document.fonts.addEventListener?.('loadingdone', remeasure);
@@ -561,21 +563,6 @@ export async function initRoute(ctx) {
     return uiList.slice();
   }
 
-  // screen rects of the map's own lettering that is showing now (region names, landmarks, place labels), re-read at most every 120 ms.
-  // A region name carries its key and opacity: a day stamp hangs on the name of its region while that name shows.
-  let textAt = -1e9, textList = [];
-  function lettering() {
-    const now = performance.now();
-    if (now - textAt < 120) return textList;
-    textAt = now; textList = [];
-    for (const el of document.querySelectorAll('.rlabel.show, .landmark.show, .plabel.show')) {
-      const r = el.getBoundingClientRect(); if (!(r.width > 0)) continue;
-      const t = el.querySelector('.t'), b = t ? t.getBoundingClientRect() : r;           // the lettering itself (the element has a feathered cloud around it)
-      textList.push({ x: b.left, y: b.top, w: b.width, h: b.height, key: el.classList.contains('rlabel') ? el.dataset.key : null, o: +(el.style.getPropertyValue('--o') || 1) });
-    }
-    return textList;
-  }
-  const STAMP_FREE_MAX = 3200;      // camera distance: farther out, a stamp shows only when it can hang on its region's name (the free spots would pile up)
 
   function updateLabels(dist, w, h) {
     const lf = (1 - smooth(95, 125, dist)) * shown;
@@ -590,45 +577,22 @@ export async function initRoute(ctx) {
       seals.push({ x: p.sx - 16, y: p.sy - 16, w: 32, h: 32 + 14, id: p.id });
     }
     const placed = [];
-    // day stamps first: they outrank the station labels. Only the fixed UI, other places' seals (never their own place's) and other stamps hide one.
-    // While the region's name shows (the overview), the stamp hangs on it like a tag: at its right end, or its left end when the right one is off the page.
-    // Otherwise each tries a few spots around its place (right of the stem, then left, stepping down), taking the first that also clears the map's own
-    // lettering (region names, landmarks, place labels); when every spot touches lettering it still shows, on the first spot that is clear of the rest.
+    // day stamps: each lives inside its city's name label (app.js moves the label), so it never jitters. It shows only after a tap on that name.
     if (stampsOn) {
-      const text = lettering();
       for (const s of stamps) {
-        _v.copy(s.pos).applyMatrix4(camera.matrixWorldInverse);
-        let show = _v.z < -camera.near * 1.5;                       // in front of the camera
-        if (show) { _v.applyMatrix4(camera.projectionMatrix); show = _v.z < 1 && Math.abs(_v.x) < 1.05 && Math.abs(_v.y) < 1.05; }
-        if (show) {
-          if (!s.w) { s.w = s.el.offsetWidth; s.h = s.el.offsetHeight; }
-          const sx = (_v.x * 0.5 + 0.5) * w, sy = (-_v.y * 0.5 + 0.5) * h;
-          const hit = (r, o, pad) => r.x < o.x + o.w + pad && r.x + r.w + pad > o.x && r.y < o.y + o.h + pad && r.y + r.h + pad > o.y;
-          const clear = (r) => r.x >= 10 && r.y >= 10 && r.x + r.w <= w - 10 && r.y + r.h <= h - 10 &&      // (10 px: clear of the phone's ink rule)
-            !blockers.some(o => hit(r, o, 0)) && !seals.some(o => o.id !== s.own && hit(r, o, 0)) && !placed.some(o => hit(r, o, 3));
-          let at = null;
-          const name = s.region ? text.find(o => o.key === s.region && o.o >= 0.5) : null;
-          if (name) {
-            const ty = name.y + (name.h - s.h) / 2;
-            for (const r of [{ x: name.x + name.w + 7, y: ty, w: s.w, h: s.h }, { x: name.x - 7 - s.w, y: ty, w: s.w, h: s.h }]) {
-              if (clear(r) && !text.some(o => o !== name && hit(r, o, 1))) { at = r; break; }
-            }
-          }
-          if (!at && dist <= STAMP_FREE_MAX && !blockers.some(o => sx >= o.x && sx <= o.x + o.w && sy >= o.y && sy <= o.y + o.h)) {     // the place itself must not sit under the fixed UI
-            const spots = [];                                                         // top-left corner, from the place's ground point; nearest first
-            for (const dy of [-16, -4, 8, 20, 32]) spots.push([14, dy], [-14 - s.w, dy]);
-            for (const avoidText of [true, false]) {
-              for (const [dx, dy] of spots) {
-                const r = { x: sx + dx, y: sy + dy, w: s.w, h: s.h };
-                if (clear(r) && !(avoidText && text.some(o => hit(r, o, 1)))) { at = r; break; }
-              }
-              if (at) break;
-            }
-          }
-          if (at) { placed.push(at); s.el.style.transform = `translate(${at.x.toFixed(1)}px,${at.y.toFixed(1)}px)`; } else show = false;
+        if (!s.host || !s.host.isConnected) {
+          const host = s.region && document.querySelector(`.rlabel[data-key="${s.region}"]`);
+          if (host) { let box = host.querySelector('.dstamps'); if (!box) { box = document.createElement('span'); box.className = 'dstamps'; host.appendChild(box); } box.appendChild(s.el); s.host = host; }
         }
-        if (show) { const o = shown.toFixed(2); if (o !== s.o) { s.o = o; s.el.style.setProperty('--o', o); } }
+        const show = !!s.host && openRegion === s.region;
         if (show !== s.on) setStampOn(s, show);
+      }
+      // near the right edge of the page the stamps move to the left of the name (with some slack, so they do not flip back and forth)
+      const host = openRegion && document.querySelector(`.rlabel[data-key="${openRegion}"]`), box = host && host.querySelector('.dstamps');
+      if (box) {
+        const t = host.querySelector('.t').getBoundingClientRect(), bw = box.offsetWidth + 6, flip = box.classList.contains('flip');
+        if (!flip && t.right + bw > w - 12) box.classList.add('flip');
+        else if (flip && t.right + bw < w - 40) box.classList.remove('flip');
       }
     }
     if (!labelsOn) return;
