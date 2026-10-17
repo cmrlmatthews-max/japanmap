@@ -436,6 +436,10 @@ const DEFS = {
       v(9.6), v(15.6, W - 0.2), v(21.4, W - 0.2),
     ];
   },
+  list() {     // three rows: a dot and a brush line each (the trip list)
+    const row = (y, x1) => [D(6.6, y, 1.7), S([[11.4, y], [x1, y]], W, { a: 0.15, b: 0.2, s0: 0.5, s1: 0.4 })];
+    return [...row(8.4, 26.4), ...row(16, 24), ...row(23.6, 21.2)];
+  },
   filters() {  // a stamp square with three narrowing marks
     return [
       S(rr(4.4, 4.4, 23.2, 23.2, 3.4).concat([[10, 4.6]]), W - 0.2, { a: 0.04, b: 0.06, s0: 0.9, s1: 0.4, wob: 0.4 }),

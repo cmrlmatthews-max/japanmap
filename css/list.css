@@ -1,0 +1,117 @@
+/* "Your Trip" list (js/list.js): a washi page in the style of the itinerary drawer (trip.css).
+   Phone: fills the screen above the bottom bar. Wider: a page on the right, under the person button. */
+
+#list { position: absolute; z-index: 9; top: 64px; right: calc(var(--cap-in, 0px) + 8px + var(--sar)); bottom: 12px; width: min(400px, calc(100% - 96px));
+        background: var(--paper) url('../assets/web/itinerary-bg.jpg') 50% 0 / cover no-repeat; border: 1px solid var(--grey-l); border-radius: 6px; overflow: hidden; color: var(--ink);
+        opacity: 0; visibility: hidden; pointer-events: none; transform: translateX(18px); transition: opacity .3s ease, transform .32s ease, visibility 0s linear .32s; }
+#list.open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }
+#list::before { content: ''; position: absolute; inset: 0; background: rgba(245, 239, 224, .74); border-radius: inherit; pointer-events: none; }
+.ls-sheet { position: relative; height: 100%; display: flex; flex-direction: column; }
+
+.ls-top { display: flex; align-items: flex-start; gap: 10px; padding: 14px 10px 8px 18px; flex: none; border-bottom: 1px solid var(--grey-l); }
+.ls-head { flex: 1; min-width: 0; }
+.ls-title { margin: 0; font-family: var(--display); font-weight: 600; font-size: 34px; line-height: 1.05; letter-spacing: .01em; }
+.ls-sub { margin: 3px 0 0; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--grey-d); }
+.ls-x { flex: none; width: 40px; height: 40px; margin-top: -2px; padding: 0; border: 0; background: none; color: var(--grey-d); font-family: var(--mincho); font-size: 28px; line-height: 1; cursor: pointer; }
+.ls-x:focus-visible, .ls-name:focus-visible, .ls-more:focus-visible, .ls-swap:focus-visible, .ls-reset:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+.ls-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 6px 18px 18px; }
+.ls-empty { margin: 24px 0; font-size: 14px; color: var(--grey-d); }
+
+/* one day */
+.ls-day { padding: 16px 0 14px; border-bottom: 1px solid var(--grey-l); }
+.ls-day:last-child { border-bottom: 0; }
+.ls-dh { display: flex; align-items: center; gap: 14px; }
+.ls-dn { flex: none; width: 54px; text-align: center; line-height: 1; }
+.ls-dn small { display: block; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--grey-d); margin-bottom: 1px; }
+.ls-dn b { display: block; font-family: var(--display); font-weight: 600; font-size: 46px; line-height: .95; color: var(--vermilion); }
+.ls-dt { min-width: 0; }
+.ls-dtitle { margin: 0; font-size: 16.5px; font-weight: 500; line-height: 1.3; }
+.ls-reg { margin-top: 3px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--grey-d); }
+
+/* stops */
+.ls-stops, .ls-alts { list-style: none; margin: 8px 0 0; padding: 0; }
+.ls-stop { padding: 0; }
+.ls-name { display: grid; grid-template-columns: 26px 1fr; column-gap: 11px; align-items: start; width: 100%; min-height: 44px; margin: 0; padding: 7px 4px 7px 0; text-align: left; background: none; border: 0; border-radius: 3px; cursor: pointer; color: var(--ink); font: inherit; }
+.ls-name:active { background: rgba(44, 44, 42, .06); }
+.ls-seal { display: grid; place-items: center; width: 26px; height: 26px; margin-top: 1px; background: var(--vermilion); color: var(--paper); border-radius: 4px 3px 5px 3px; }
+.ls-seal :is(svg, img) { display: block; width: 68%; height: 68%; }
+.ls-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ls-n { font-size: 15.5px; font-weight: 500; line-height: 1.25; }
+.ls-why { font-style: normal; font-size: 12.5px; line-height: 1.4; color: var(--grey-d); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ls-sw { display: flex; align-items: center; gap: 6px; margin: -3px 0 4px 37px; font-size: 11.5px; letter-spacing: .04em; color: var(--vermilion); }
+.ls-dot { color: var(--grey-m); }
+.ls-undo { padding: 6px 4px; min-height: 32px; border: 0; background: none; color: var(--vermilion); font: inherit; font-size: 11.5px; letter-spacing: .04em; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.ls-stop.swapped .ls-seal { background: var(--ink); }
+
+/* other options */
+.ls-more { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 40px; margin-top: 6px; padding: 0 4px 0 2px; background: none; border: 0; border-top: 1px dashed var(--grey-m); color: var(--grey-d); font: inherit; font-size: 12.5px; letter-spacing: .06em; cursor: pointer; }
+.ls-more:disabled { opacity: .5; cursor: default; }
+.ls-chev { display: grid; place-items: center; width: 16px; height: 16px; color: var(--vermilion); transition: transform .25s ease; }
+.ls-chev svg { width: 13px; height: 13px; }
+.ls-more[aria-expanded="true"] .ls-chev { transform: rotate(180deg); }
+.ls-alts { margin-top: 2px; padding-left: 10px; border-left: 1.5px dashed var(--grey-m); }
+.ls-alt { padding: 4px 0 6px; }
+.ls-alt + .ls-alt { border-top: 1px solid rgba(185, 182, 172, .55); }
+.ls-arow { display: flex; align-items: flex-start; gap: 8px; }
+.ls-arow .ls-name { flex: 1; min-width: 0; }
+.ls-alt .ls-seal { background: transparent; border: 1.5px solid var(--vermilion); color: var(--vermilion); }
+.ls-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 7px; font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--grey-d); }
+.ls-meta .tag { font-style: normal; font-size: 10px; letter-spacing: .06em; text-transform: none; padding: 1px 6px; border: 1.5px solid var(--vermilion); border-radius: 3px; white-space: nowrap; }
+.ls-meta .tag.core { background: var(--vermilion); color: var(--paper); }
+.ls-meta .tag.sug { color: var(--vermilion); }
+.ls-meta .tag.add { border-color: var(--ink); color: var(--ink); }
+.ls-swap { flex: none; align-self: center; min-width: 74px; min-height: 40px; padding: 0 10px; background: transparent; color: var(--vermilion); border: 2px solid var(--vermilion); border-radius: 4px 3px 5px 3px; font: inherit; font-size: 13px; letter-spacing: .03em; cursor: pointer; transition: background .25s, color .25s; }
+.ls-swap:active { background: var(--vermilion); color: var(--paper); }
+.ls-swap:disabled, .ls-undo:disabled, .ls-opt:disabled { opacity: .5; }
+
+/* the inline "which stop?" choice */
+.ls-pick { margin: 4px 0 6px 37px; padding: 8px 10px 10px; background: rgba(245, 239, 224, .85); border: 1px solid var(--grey-l); border-radius: 4px 3px 5px 3px; }
+.ls-pick p { margin: 0 0 6px; font-size: 12px; letter-spacing: .06em; color: var(--grey-d); }
+.ls-opt { display: block; width: 100%; min-height: 40px; margin: 0 0 5px; padding: 6px 10px; text-align: left; background: transparent; border: 1.5px solid var(--ink); border-radius: 4px 3px 5px 3px; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.ls-opt:active { background: var(--ink); color: var(--paper); }
+.ls-cancel { min-height: 36px; padding: 0 8px; background: none; border: 0; color: var(--grey-d); font: inherit; font-size: 12.5px; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+
+/* footer */
+.ls-foot { position: relative; flex: none; padding: 10px 18px calc(12px + var(--sab)); border-top: 1px solid var(--grey-l); background: rgba(245, 239, 224, .6); }
+.ls-reset { width: 100%; min-height: 44px; background: transparent; color: var(--ink); border: 2px solid var(--ink); border-radius: 4px 3px 5px 3px; font: inherit; font-size: 14.5px; letter-spacing: .04em; cursor: pointer; }
+.ls-reset:disabled { opacity: .45; cursor: default; }
+.ls-reset:not(:disabled):active { background: var(--ink); color: var(--paper); }
+.ls-confirm p { margin: 0 0 8px; font-size: 13px; line-height: 1.5; }
+.ls-crow { display: flex; gap: 10px; }
+.ls-crow button { flex: 1; min-height: 44px; border-radius: 4px 3px 5px 3px; font: inherit; font-size: 14px; cursor: pointer; }
+.ls-yes { background: var(--vermilion); color: var(--paper); border: 2px solid var(--vermilion); }
+.ls-no { background: transparent; color: var(--ink); border: 2px solid var(--ink); }
+
+/* what steps aside while the list is open */
+body.list-open #crests, body.list-open #region, body.list-open #inset, body.list-open #legend { opacity: 0; pointer-events: none; }
+body.list-open #seals { opacity: 1; pointer-events: auto; }
+
+/* the "List" stamp (wider screens): the last stamp of the layer column */
+@media (max-width: 600px) { #seals .seal[data-open="list"] { display: none; } }
+
+/* phone: the list fills the screen above the bar */
+@media (max-width: 600px) {
+  #list { top: max(12px, var(--sat)); left: 12px; right: 12px; bottom: calc(var(--bar-t, 68px) + 4px); width: auto; transform: translateY(18px); }
+  #list.open { transform: none; }
+  .ls-title { font-size: 32px; }
+  .ls-body { padding-left: 14px; padding-right: 14px; }
+  .ls-top { padding-left: 14px; }
+  .ls-foot { padding-left: 14px; padding-right: 14px; padding-bottom: 12px; }
+  /* five tabs: a little less width each */
+  #bar .tab { min-width: 54px; }
+  body[data-tab="list"] #bar [data-tab="list"] .stamp { background: var(--vermilion); color: var(--paper); opacity: 1; }
+  body[data-tab="list"] #bar [data-tab="list"] .lb { color: var(--ink); }
+}
+
+/* docked (iPad landscape, iPhone landscape): the list takes the place of the itinerary page, as the info card does */
+@media (min-width: 900px), (max-height: 520px) and (orientation: landscape) {
+  body.list-open #drawer { transform: translateX(calc(100% + var(--cap-in, 0px) + 40px)); pointer-events: none; }
+}
+/* iPhone landscape: nearly the whole height */
+@media (max-height: 520px) and (orientation: landscape) {
+  #list { top: 8px; bottom: 8px; width: min(360px, calc(100% - 96px)); }
+  .ls-title { font-size: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) { #list { transition: opacity .2s ease, visibility 0s linear .2s; transform: none; } #list.open { transform: none; } .ls-chev { transition: none; } }

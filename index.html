@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="css/tips.css">
 <link rel="stylesheet" href="css/inset.css">
 <link rel="stylesheet" href="css/legend.css">
+<link rel="stylesheet" href="css/list.css">
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
@@ -46,6 +47,7 @@
     <button class="seal on" data-layer="mist" data-icon="mist" aria-label="Mist"><span class="lb">Mist</span></button>
     <button class="seal on" data-layer="camera" data-icon="camera" aria-label="Motion"><span class="lb">Motion</span></button>
     <button class="seal" data-layer="sound" data-icon="sound" aria-label="Sound"><span class="lb">Sound</span></button>
+    <button class="seal" data-open="list" data-icon="list" data-tip="List · Your trip, day by day" aria-label="Trip list" aria-pressed="false"><span class="lb">List</span></button>
   </nav>
 
   <nav id="crests" aria-label="Regions">
@@ -75,6 +77,7 @@
     <button class="tab" type="button" data-tab="filters" data-tip="Filters · Show or hide place types" aria-label="Filters" aria-pressed="false"><span class="stamp" data-icon="filters"></span><span class="lb">Filters</span></button>
     <button class="tab" type="button" data-tab="layers" data-tip="Layers · Route, mist, motion, sound, 3D" aria-label="Layers" aria-pressed="false"><span class="stamp" data-icon="layers"></span><span class="lb">Layers</span></button>
     <button class="tab" type="button" data-tab="trip" data-tip="Trip · Open the itinerary" aria-label="Trip" aria-pressed="false"><span class="stamp" data-icon="route"></span><span class="lb">Trip</span></button>
+    <button class="tab" type="button" data-tab="list" data-tip="List · Your trip, day by day" aria-label="List" aria-pressed="false"><span class="stamp" data-icon="list"></span><span class="lb">List</span></button>
   </nav>
 
   <div id="region"><div class="en">Central Japan</div></div>
@@ -111,6 +114,8 @@
 
   <!-- Phase 3: itinerary drawer (washi page) and fly-through player. Built by js/trip.js -->
   <aside id="drawer" aria-label="Itinerary"></aside>
+  <!-- decision 2: the Your Trip list (washi page, swaps saved on this device). Built by js/list.js -->
+  <aside id="list" aria-label="Your Trip" aria-hidden="true"></aside>
   <div id="player" aria-label="Fly-through"></div>
   <!-- Phase 3: symbol tooltip (hover on Mac, long press on iPhone/iPad). Built by js/tips.js -->
   <div id="tip" role="tooltip" hidden></div>

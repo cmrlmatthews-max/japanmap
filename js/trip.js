@@ -4,6 +4,7 @@
 import { DOCK_MQ } from './ui.js';
 import { CATS } from './pins.js';
 import { iconSVG } from './icons.js';
+import { loadItinerary } from './itinerary.js';
 import { linesKey } from './legend.js';
 
 const PAUSE_S = 3;                                  // seconds held at each stop
@@ -520,7 +521,7 @@ export function initTrip(ctx, route) {
     let data = safe(() => route && route.itinerary, null);
     if (!(data && Array.isArray(data.days) && data.days.length)) {
       const who = safe(() => route.who, null) || Store.who || 'cade';
-      data = await fetch(`data/itinerary-${who}.json`, { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null).catch(() => null);
+      data = await loadItinerary(who, placeById).then((r) => r.it).catch(() => null);      // the shared loader (swaps applied)
     }
     if (token !== loadToken) return;
     itin = data && Array.isArray(data.days) && data.days.length ? data : null;

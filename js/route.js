@@ -7,6 +7,7 @@
 // World frame: see terrain.js. Paths are draped on the terrain MESH (not the raw heights), so they never sink into it.
 import * as THREE from 'three';
 import { metersToUnits } from './terrain.js';
+import { loadItinerary } from './itinerary.js';
 
 // ---------- constants ----------
 const ST = { shinkansen: 0, local: 1, funicular: 1, walk: 2, bus: 3, boat: 4, ropeway: 5, CTX: 6, CTX_SHIN: 7, TICK: 8 };
@@ -558,17 +559,11 @@ export async function initRoute(ctx) {
   }
 
   // --- data loading ---
-  async function loadItinerary(who) {
-    const w = who === 'casey' ? 'casey' : 'cade';
-    let it = null;
-    for (const name of w === 'casey' ? ['casey', 'cade'] : ['cade']) {
-      try { const r = await fetch(`data/itinerary-${name}.json`); if (r.ok) { it = await r.json(); break; } } catch (e) { /* try the fallback */ }
-    }
-    return { it, who: w };
-  }
+  // the shared loader: the plan file of this person with this device's swaps applied (js/itinerary.js)
+  async function loadItin(who) { const r = await loadItinerary(who, placeById); return { it: r.it, who: r.who }; }
   async function reload(who) {
     const token = ++buildToken;
-    const { it, who: w } = await loadItinerary(who || Store.who || 'cade');
+    const { it, who: w } = await loadItin(who || Store.who || 'cade');
     if (token !== buildToken) return api;               // a newer reload is already running
     api.who = w; api.itinerary = it;
     if (it) { try { build(it); } catch (e) { console.error('[route] build failed', e); } } else { disposeTrip(); console.warn('[route] no itinerary file found'); }

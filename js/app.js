@@ -11,6 +11,8 @@ import { initInset } from './inset.js';
 import { initMarker } from './marker.js';
 import { initArt } from './art.js';
 import { initLegend } from './legend.js';
+import { initList } from './list.js';
+import { tripSet } from './itinerary.js';
 
 const $ = (s) => document.querySelector(s);
 const canvas = $('#map'), scrollEl = $('#scroll');
@@ -414,13 +416,20 @@ function addMist(mistTex, pos, y, scale, rot) {
 // ---------- state shared with the UI ----------
 let pins = null, world = null, places = [], coast = null;         // coast: data/japan-coast.json (loaded in init)
 const placeById = new Map();
-const refreshPins = () => pins && pins.setChoices(Store.mine());
+let list = null;                                          // the Your Trip list (js/list.js)
+// pins: the choices, and the trip set (the plan's stops after swaps plus "Add to trip"); only the trip set shows
+const refreshPins = () => { if (!pins) return; pins.setChoices(Store.mine()); pins.setTripSet(tripSet(route && route.itinerary, Store.mine())); };
+// reload the plan everywhere after a swap or a person switch: route, drawer and player, pins, list
+async function reloadTrip() {
+  if (route && route.reload) { await route.reload(Store.who); if (trip && trip.refresh) await trip.refresh(); }
+  refreshPins(); if (list) list.render();
+}
 
 const ui = initUI({
   onRegion: (id) => flyToRegion(id),
   onFilter: (set) => pins && pins.setFilter(set),         // never touches the camera
   onChoice: () => refreshPins(),
-  onWho: () => { refreshPins(); if (route && route.reload) route.reload(Store.who).then(() => trip && trip.refresh && trip.refresh()).catch(e => console.error(e)); },
+  onWho: () => { refreshPins(); reloadTrip().catch(e => console.error(e)); },
   onCardClose: () => pins && pins.select(null),
 });
 
@@ -513,6 +522,8 @@ async function init() {
     isFlying: () => !!fly, openPlace, REGION_INFO, world, view, coast, framePoints, flyToRegion };
   try { route = await initRoute(ctx); route.setVisible(state.route); } catch (e) { console.error('route', e); }
   try { trip = initTrip(ctx, route); } catch (e) { console.error('trip', e); }
+  try { list = initList(ctx, { route, trip, reload: reloadTrip }); } catch (e) { console.error('list', e); }
+  refreshPins();                                          // the route has loaded: the trip set is known
   try { initTips(); } catch (e) { console.error('tips', e); }
   // flat map layers under the terrain (sea, land, coast, lakes), the map key, the koi marker and the sea paintings
   try { flat = await initFlatMap(ctx, { washiTex: washi, waveTex }); } catch (e) { console.error('flatmap', e); }
@@ -599,7 +610,7 @@ window.__map = {
   flyToRegion, openPlace, state, ui, THREE, camera, controls, scene, view, framePoints, get coast() { return coast; },
   get pins() { return pins; }, get world() { return world; }, get places() { return places; },
   lonLatToWorld, heightAtWorld, mistFade: MIST_FADE, freeRect, flyToPose, cutToPose, placePose, regionPose, aimPose, sph, groundTarget,
-  get route() { return route; }, get trip() { return trip; }, get flat() { return flat; }, get inset() { return inset; }, get marker() { return marker; }, get art() { return art; },
+  get route() { return route; }, get trip() { return trip; }, get list() { return list; }, reloadTrip, get flat() { return flat; }, get inset() { return inset; }, get marker() { return marker; }, get art() { return art; },
   setWho(w) { Store.setWho(w); ui.setActiveRegion(state.region); refreshPins(); },
 };
 init().catch(err => { console.error(err); $('#loading .txt').innerHTML = 'Could not load the map<br><span></span>'; $('#loading .txt span').textContent = err.message; });

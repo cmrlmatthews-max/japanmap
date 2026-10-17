@@ -112,6 +112,7 @@ export class Pins {
     this.choices = {};
     this.enabled = new Set(CAT_ORDER);
     this.selectedId = null;
+    this.tripSet = null;
     this.pins = [];
     this.byId = new Map();
     this.labelRatio = 0;
@@ -161,6 +162,8 @@ export class Pins {
     }
   }
   setFilter(set) { this.enabled = new Set(set); }
+  // the trip set: ids of the accepted places (plan stops after swaps, plus "Add to trip"). Only these show, and the open card's place. null = show all.
+  setTripSet(set) { this.tripSet = set ? new Set(set) : null; }
   select(id) { this.selectedId = id; }
   pulse(id) { const p = this.byId.get(id); if (p) p.pulse = 0; }
   worldPos(id) { return this.byId.get(id)?.ground.clone(); }
@@ -204,7 +207,7 @@ export class Pins {
     const anyOn = distFade > 0.002;
     const vis = [];
     for (const p of this.pins) {
-      const on = this.enabled.has(p.place.category) && anyOn;
+      const on = this.enabled.has(p.place.category) && anyOn && (!this.tripSet || this.tripSet.has(p.id) || p.id === this.selectedId);
       let target = 0;
       if (on) {
         const dp = cam.position.distanceTo(p.ground);
