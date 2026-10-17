@@ -1,9 +1,9 @@
-/* ---- line legend (js/legend.js): a "Lines" tab above the map key; the panel opens upward ---- */
+/* ---- line legend (js/legend.js): a "Lines" tab directly under the map key; the panel opens to the left of the key ---- */
 #legend {
   position: absolute; z-index: 6;
-  right: calc(var(--cap-in) + 10px + var(--sar));
-  bottom: calc(max(16px, var(--sab)) + var(--fh) + 14px + 104px + 6px);
-  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+  right: calc(12px + var(--sar));
+  top: calc(var(--key-t) + 104px + 6px);
+  display: flex; flex-direction: column; align-items: flex-end;
   transition: opacity .3s ease;
 }
 #legend .lg-tab {
@@ -11,13 +11,14 @@
   border: 1px solid rgba(44, 44, 42, .18); border-radius: 3px 2px 4px 2px; background: rgba(245, 239, 224, .9);
   font-family: var(--mincho); font-size: 12px; font-weight: 500; letter-spacing: .04em; color: var(--ink); cursor: pointer; touch-action: manipulation;
 }
-#legend .lg-tab svg { width: 12px; height: 12px; transition: transform .25s ease; }
-#legend.open .lg-tab svg { transform: rotate(180deg); }
+#legend .lg-tab svg { width: 12px; height: 12px; transform: rotate(180deg); transition: transform .25s ease; }   /* points down: the page opens toward the map */
+#legend.open .lg-tab svg { transform: none; }
 #legend .lg-tab:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 2px; }
 #legend .lg-panel {
+  position: absolute; right: calc(100% + 10px); top: calc(-104px - 6px);   /* level with the top of the key, left of it */
   padding: 10px 12px 8px; min-width: 168px;
   border: 1px solid rgba(44, 44, 42, .18); border-radius: 4px 3px 5px 3px;
-  background: var(--paper) url('../assets/web/card-bg.jpg') 50% 30% / 320% auto no-repeat; position: relative;
+  background: var(--paper) url('../assets/web/card-bg.jpg') 50% 30% / 320% auto no-repeat;
   box-shadow: 0 2px 10px rgba(44, 44, 42, .12);
 }
 #legend .lg-panel::before { content: ''; position: absolute; inset: 0; background: rgba(245, 239, 224, .78); border-radius: inherit; pointer-events: none; }
@@ -26,12 +27,7 @@
 #legend .lg-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; font-size: 13.5px; color: var(--ink); }
 #legend .lg-sw { flex: none; display: block; }
 
-/* phone: above the map key, which rides above the bar, an open strip and the peeking player */
-@media (max-width: 600px) {
-  #legend { right: 10px; bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 10px + 104px + 6px); transition: opacity .3s ease, bottom .3s ease; }
-}
 @media (max-height: 520px) { #legend { display: none; } }
-body.card-open #legend, body.trip-open #legend { opacity: 0; pointer-events: none; }
 
 /* compact key at the top of the itinerary sheet */
 .lines-key { display: flex; flex-wrap: wrap; gap: 4px 12px; padding: 8px 20px 2px; }

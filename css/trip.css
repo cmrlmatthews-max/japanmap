@@ -97,7 +97,7 @@
 .pl-row .pl-cap { flex: 1; }
 
 /* iPad portrait: the region crests stand on the right edge, so the sheet keeps clear of them */
-@media (min-width: 601px) { #drawer { width: min(560px, 100% - 2 * (var(--cap-in) + var(--cs) + 22px)); } }
+@media (min-width: 601px) { #drawer { width: min(560px, 100% - 2 * (var(--cs) + 22px)); } }
 
 /* the layer stamps hide while the bottom sheet is open (the sheet would cut the column in half) */
 #seals { transition: opacity .3s ease; }
@@ -126,14 +126,14 @@ body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 0; 
 
 /* ---------- docked: iPad landscape, iPhone landscape ---------- */
 @media (min-width: 900px), (max-height: 520px) and (orientation: landscape) {
-  #scroll { --dwf: clamp(300px, 30vw, 380px); --dw: var(--dwf); }
+  #scroll { --dwf: clamp(300px, 30vw, 380px); --dw: var(--dwf); --crw: calc(var(--cs) + 14px); }   /* --crw: the crest column stands left of the page and the player */
   body.has-trip:not(.trip-open) #scroll { --dw: 46px; }
-  #drawer { left: auto; right: calc(var(--cap-in) + 8px); top: 104px; bottom: auto; margin: 0; width: var(--dw); height: calc(100% - 120px);
+  #drawer { left: auto; right: 8px; top: var(--keyb); bottom: auto; margin: 0; width: var(--dw); height: calc(100% - var(--keyb) - 16px);
             border: 1px solid var(--grey-l); border-radius: 6px; transform: none;
             transition: width .35s ease, height .35s ease, transform .45s ease; }
   #drawer.open { transform: none; }
   body.has-trip:not(.trip-open) #drawer { height: 176px; }
-  body.card-open #drawer { transform: translateX(calc(100% + var(--cap-in) + 40px)); pointer-events: none; }   /* the info card takes the same place; the page comes back when it closes */
+  body.card-open #drawer { transform: translateX(calc(100% + 40px)); pointer-events: none; }   /* the info card takes the same place; the page comes back when it closes */
   .d-sheet { position: static; }
   .d-full { position: absolute; top: 0; right: 0; bottom: 0; width: var(--dwf); transition: opacity .3s ease; }
   #drawer:not(.open) .d-full { opacity: 0; pointer-events: none; }
@@ -147,7 +147,7 @@ body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 0; 
   .sp-k { writing-mode: vertical-rl; font-size: 13px; font-weight: 500; line-height: 1.2; letter-spacing: .14em; overflow: hidden; max-height: 90px; }
 
   /* the player: a slim bar at the bottom of the free map area, above the filter row */
-  #player { display: block; position: absolute; z-index: 8; left: calc(var(--cap-in) + 56px + var(--sal)); right: calc(var(--cap-in) + 8px + var(--dw) + 10px + var(--crw)); bottom: calc(max(16px, var(--sab)) + var(--fh) + 10px);
+  #player { display: block; position: absolute; z-index: 8; left: calc(56px + var(--sal)); right: calc(8px + var(--dw) + 10px + var(--crw)); bottom: calc(max(16px, var(--sab)) + var(--fh) + 10px);
             padding: 7px 8px 5px 10px; background: rgba(245, 239, 224, .93); border: 1px solid var(--grey-l); border-radius: 6px; transition: right .35s ease; }
   .pl-row { display: grid; grid-template-columns: 40px 1fr; column-gap: 10px; align-items: center; height: auto; padding: 0; cursor: default; touch-action: auto; }
   .pl-row .pl-play { grid-column: 1; grid-row: 1 / span 2; margin: 0; }
@@ -155,7 +155,7 @@ body.has-trip.trip-open #filters, body.has-trip.trip-open #region { opacity: 0; 
   .pl-row .pl-scrub { position: relative; grid-column: 2; grid-row: 2; left: auto; right: auto; top: auto; height: 32px; }
   .pl-row .pl-chev { display: none; }
   /* the region crests keep clear of the page (left of it); the filter row centres in what is left */
-  #crests { right: calc(var(--cap-in) + 8px + var(--dw) + 10px); transition: opacity .35s ease, right .35s ease; }
+  #crests { right: calc(8px + var(--dw) + 10px); transition: opacity .35s ease, right .35s ease; }
   body.has-trip #filters { bottom: max(16px, var(--sab)); left: calc((100% + 52px - var(--dw) - var(--crw)) / 2); }
   body.has-trip.card-open #filters { left: calc((100% + 52px - var(--card-w)) / 2); }
   body.has-trip.trip-open #filters, body.has-trip.trip-open #region, body.trip-open #seals { opacity: 1; pointer-events: auto; }

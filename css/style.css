@@ -23,21 +23,15 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper)
 button { font-family: inherit; }
 
 #scroll {
-  --cap-h: 103vh;
-  --cap-w: calc(var(--cap-h) * 0.2075);   /* width of a roller cap image */
-  --cap-in: calc(var(--cap-w) - 6px);     /* inner edge of the cap: UI sits inside this */
-  --cs: clamp(38px, 6.4vh, 58px);         /* crest size */
+  --key-t: calc(max(14px, var(--sat)) + 48px);              /* top of the map key: under the person button (40 px high + 8 px) */
+  --keyb: calc(var(--key-t) + 104px + 6px + 28px + 8px);    /* bottom of the key stack: key, gap, "Lines" tab, gap. Crests and docked pages start here */
+  --cs: clamp(32px, calc((100vh - var(--keyb) - 28px) / 8 - 18px), 56px);   /* crest size: eight crests fit the column under the key */
   --fs: 38px;                             /* filter stamp size */
   --fh: calc(var(--fs) + 26px);           /* filter row height: stamp + two lines of caption */
   position: fixed; inset: 0; overflow: hidden;
   background: var(--paper) url('../assets/web/washi.jpg') center/512px repeat;
 }
 #map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
-#capProbe { position: absolute; left: var(--cap-in); top: 0; width: 0; height: 0; pointer-events: none; }
-
-.cap { position: absolute; top: 50%; height: var(--cap-h); width: auto; transform: translateY(-50%); pointer-events: none; z-index: 5; }
-#cap-left  { left: -6px; }
-#cap-right { right: -6px; }
 
 #title { position: absolute; top: max(14px, var(--sat)); left: 50%; transform: translateX(-50%); text-align: center; z-index: 6; pointer-events: none; }
 #title img { height: 64px; width: auto; display: block; margin: 0 auto; }
@@ -62,12 +56,11 @@ button { font-family: inherit; }
 .seal.on .lb { color: var(--ink); }
 .seal:active .stamp { transform: scale(.96); }
 .seal { transition: opacity .3s; }
-.seal.dim { opacity: .45; }   /* a layer with no effect in the current view (Mist on the flat map) */
 
-#seals { --fs: 40px; position: absolute; left: calc(var(--cap-in) + 10px + var(--sal)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 6; }
+#seals { --fs: 40px; position: absolute; left: calc(10px + var(--sal)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 12px; z-index: 6; }
 
 /* the person: a small stamp-like pill with the person icon and the name */
-#who { position: absolute; top: max(14px, var(--sat)); right: calc(var(--cap-in) + 12px + var(--sar)); z-index: 6; flex-direction: row; align-items: center; gap: 6px;
+#who { position: absolute; top: max(14px, var(--sat)); right: calc(12px + var(--sar)); z-index: 6; flex-direction: row; align-items: center; gap: 6px;
        height: 40px; padding: 0 11px 0 8px; border: 2px solid var(--vermilion); border-radius: 4px 3px 5px 3px; background: var(--vermilion); color: var(--paper); }
 #who .who-ic { display: grid; place-items: center; width: 20px; height: 20px; pointer-events: none; }
 #who .who-ic :is(svg, img) { display: block; width: 100%; height: 100%; }
@@ -81,7 +74,7 @@ button { font-family: inherit; }
 #bar { display: none; }
 
 /* ---- region crests ---- */
-#crests { position: absolute; right: calc(var(--cap-in) + 10px + var(--sar)); top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 6;
+#crests { position: absolute; right: calc(10px + var(--sar)); top: var(--keyb); display: flex; flex-direction: column; align-items: center; gap: 4px; z-index: 6;
           transition: opacity .35s ease; }
 .crest { position: relative; width: var(--cs); background: none; border: 0; padding: 0; cursor: pointer; opacity: .82; transition: opacity .3s, transform .3s; }
 .crest:hover, .crest.active { opacity: 1; }
@@ -98,7 +91,7 @@ button { font-family: inherit; }
 .crest.overview.active::after { bottom: -3px; }
 
 /* ---- region text ---- */
-#region { text-shadow: var(--halo-m); position: absolute; left: calc(var(--cap-in) + 14px + var(--sal)); top: max(16px, var(--sat)); text-align: left; z-index: 6; pointer-events: none; transition: opacity .35s ease; }
+#region { text-shadow: var(--halo-m); position: absolute; left: calc(14px + var(--sal)); top: max(16px, var(--sat)); text-align: left; z-index: 6; pointer-events: none; transition: opacity .35s ease; }
 #region .en { font-family: var(--display); font-weight: 600; font-size: 40px; line-height: 1.05; letter-spacing: .02em; color: var(--ink); }
 
 /* ---- projected labels ---- */
@@ -120,7 +113,7 @@ button { font-family: inherit; }
 .rlabel::before { inset: -8px -16px; }
 
 /* ---- info card (washi) ---- */
-#card { position: absolute; z-index: 9; left: 0; right: 0; bottom: 0; margin: 0 auto; width: min(560px, 100%); max-height: min(74vh, 660px);
+#card { position: absolute; z-index: 9; left: 0; right: 0; bottom: 0; margin: 0 auto; width: min(560px, 100%); max-height: min(74vh, 660px, calc(100vh - var(--keyb)));   /* the sheet stops under the map key */
         background: var(--paper) url('../assets/web/card-bg.jpg') 50% 0 / 320% auto no-repeat;   /* the calm middle third: no fold lines or margin rule */
         border: 1px solid var(--grey-l); border-bottom: 0; border-radius: 14px 14px 0 0;
         transform: translateY(104%); transition: transform .45s ease; display: flex; flex-direction: column; pointer-events: none; }
@@ -190,8 +183,9 @@ button { font-family: inherit; }
 
 /* ---- short screens (iPhone landscape): smaller crests with a small caption, masthead title in one line ---- */
 @media (max-height: 520px) {
-  #seals { --fs: 34px; gap: 8px; }   /* five stamps with the 3D one: the column must clear the region caption at the top */
-  #crests { gap: 2px; --cs: 30px; top: 52px; transform: none; }
+  #seals { --fs: 34px; gap: 8px; }   /* the column must clear the region caption at the top */
+  #scroll { --cs: 26px; }            /* eight crests must fit the height under the person button */
+  #crests { gap: 2px; top: 58px; }
   .crest { min-width: 40px; display: flex; flex-direction: column; align-items: center; }
   .crest i { font-size: 9px; line-height: 11px; }
   #title img { height: 48px; }
@@ -202,8 +196,8 @@ button { font-family: inherit; }
 
 /* ---- iPad / desktop and iPhone landscape: card docks on the right ---- */
 @media (min-width: 900px), (max-height: 520px) and (orientation: landscape) {
-  #card { left: auto; right: calc(var(--cap-in) + 8px); top: 104px; bottom: auto; margin: 0; width: 360px; max-height: calc(100% - 120px); border: 1px solid var(--grey-l); border-radius: 6px;
-          transform: translateX(calc(100% + var(--cap-in) + 40px)); }
+  #card { left: auto; right: 8px; top: var(--keyb); bottom: auto; margin: 0; width: 360px; max-height: calc(100% - var(--keyb) - 16px); border: 1px solid var(--grey-l); border-radius: 6px;
+          transform: translateX(calc(100% + 40px)); }
   #card::before { border-radius: 6px; }
   #card.open { transform: none; }
   #card .grab { display: none; }
@@ -222,26 +216,19 @@ button { font-family: inherit; }
   #card .why { font-size: 14px; margin-top: 8px; }
 }
 
-/* ---- portrait screens (iPhone, iPad portrait): only the wooden rollers show, the rolled paper is cropped away ---- */
-@media (orientation: portrait) {
-  #scroll { --cap-h: 100vh; --cap-in: calc(var(--cap-w) * 0.30); }
-  #cap-left  { left: calc(var(--cap-w) * -0.33); clip-path: inset(0 calc(var(--cap-w) * 0.37) 0 0); }
-  #cap-right { right: calc(var(--cap-w) * -0.42); clip-path: inset(0 0 0 calc(var(--cap-w) * 0.28)); }
-}
-
 /* ---- iPad portrait: the caption must stay clear of the masthead art ---- */
 @media (min-width: 601px) and (max-width: 899px) { #region .en { font-size: 32px; } }
 
 /* ---- iPhone portrait: no rollers, a bottom bar with four tabs, the crests, filters and layer stamps as strips above it ---- */
 @media (max-width: 600px) {
   /* --bar-t: the whole bar (tabs plus safe area). --peek: how far the trip player rises above the bar (trip.css). --lift: how far the caption and the map key rise above an open strip. */
-  #scroll { --cs: 38px; --fs: 34px; --cap-in: 0px; --bar-h: 58px; --bar-t: calc(var(--bar-h) + max(10px, var(--sab))); --peek: 0px; --lift: 0px; }
-  .cap { display: none; }
+  #scroll { --key-t: calc(max(14px, var(--sat)) + 74px);   /* the map key stands under the masthead's English line, which runs wide on a phone */
+    --cs: 38px; --fs: 34px; --bar-h: 58px; --bar-t: calc(var(--bar-h) + max(10px, var(--sab))); --peek: 0px; --lift: 0px; }
   #scroll::after { content: ''; position: absolute; inset: 8px; border: 1px solid rgba(44, 44, 42, .35); border-radius: 3px 2px 4px 2px; pointer-events: none; z-index: 5; }   /* a thin ink rule instead of the rollers */
   #title img { height: 44px; }
   #title .sub .name { font-size: 19px; }
   #title .sub .yr { display: none; }
-  .crest { width: 40px; display: flex; flex-direction: column; align-items: center; }
+  .crest { width: 38px; display: flex; flex-direction: column; align-items: center; }   /* eight crests fit the strip; "Your Trip" overhangs its box a little */
   .crest i { font-size: 9px; line-height: 12px; letter-spacing: .01em; }
   #who { right: calc(12px + var(--sar)); gap: 5px; }
   #region { top: auto; left: calc(12px + var(--sal)); bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 12px); transition: opacity .35s ease, bottom .3s ease; }
@@ -278,6 +265,7 @@ button { font-family: inherit; }
     border-radius: 26px; background: radial-gradient(ellipse at center, rgba(245, 239, 224, .84) 0%, rgba(245, 239, 224, .62) 60%, rgba(245, 239, 224, 0) 100%);
     box-shadow: 0 0 10px 6px rgba(245, 239, 224, .45);
   }
+  #scroll #crests { gap: 3px; }
   #crests::-webkit-scrollbar, #filters::-webkit-scrollbar, #seals::-webkit-scrollbar { display: none; }
   #crests .crest, #filters .seal, #seals .seal { flex: none; }
   #filters .seal, #seals .seal { padding: 0 4px; margin: 0 -4px; }   /* wider touch area, same look: the padding cancels the margin and the stamps keep their 8px gap */
@@ -285,7 +273,6 @@ button { font-family: inherit; }
   body[data-tab="regions"] #scroll { --lift: 66px; }
   body[data-tab="filters"] #scroll { --lift: 76px; }
   body[data-tab="layers"] #scroll { --lift: 70px; }
-  body #inset { bottom: calc(var(--bar-t) + var(--peek) + var(--lift) + 10px); }   /* the map key (js/inset.js) rides above the bar, an open strip and the peeking player */
 }
 @media (prefers-reduced-motion: reduce) {
   #loading .brush { animation: none; }

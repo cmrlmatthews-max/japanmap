@@ -35,7 +35,7 @@ controls.screenSpacePanning = false;
 
 const prefersStill = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let route = null, trip = null, flat = null, inset = null, marker = null, art = null;
-const state = { route: true, mist: true, cameraMoves: !prefersStill, sound: false, flying: false, region: 'overview', ready: false };
+const state = { route: true, cameraMoves: !prefersStill, flying: false, region: 'japan', ready: false };
 
 const tl = new THREE.TextureLoader();
 const tex = (p) => new Promise((res, rej) => tl.load(p, res, undefined, rej));
@@ -96,11 +96,9 @@ const OVERVIEW = { lon: 137.57, lat: 35.20, polar: 54, az: 0, span: 770 };
 const OVERVIEW_PORTRAIT = { lon: 137.85, polar: 44, az: 270, span: 350 };   // target a little toward Tokyo: the far end is foreshortened
 const isPortrait = () => canvas.clientWidth / canvas.clientHeight < 0.85;
 
-const probe = $('#capProbe');
-const capInset = () => (probe ? probe.getBoundingClientRect().left : 0);
 function overviewDist() {
   const w = canvas.clientWidth, h = canvas.clientHeight, aspect = w / h;
-  const usable = Math.max(0.3, (w - 2 * (capInset() + (isPortrait() ? 0 : 56))) / w);   // landscape: also keep clear of the seal columns
+  const usable = Math.max(0.3, (w - 2 * (isPortrait() ? 0 : 56)) / w);   // landscape: keep clear of the seal columns
   const hTan = FOV_TAN * aspect;
   if (isPortrait()) {                                       // fit the short axis across and the long axis (foreshortened by the tilt) down
     const dW = OVERVIEW_PORTRAIT.span / (2 * hTan * usable);
@@ -121,8 +119,8 @@ function groundTarget(lon, lat) { const p = lonLatToWorld(lon, lat); p.y = heigh
 // the destination is aimed at the centre of what is left, so a region or a place never lands under a button or a card.
 function uiEl(sel) { const el = document.querySelector(sel); return el && !el.hidden ? el : null; }
 function freeRect(withCard = false) {
-  const w = canvas.clientWidth, h = canvas.clientHeight, ci = capInset();
-  const R = { x0: ci, y0: 0, x1: w - ci, y1: h };
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  const R = { x0: 0, y0: 0, x1: w, y1: h };
   const area = (r) => Math.max(0, r.x1 - r.x0) * Math.max(0, r.y1 - r.y0);
   const PAD = 12;
   const cut = (b, force) => {                                     // b = { l, t, r, b } of a UI element: trim the free rect on the side that loses least
@@ -142,7 +140,7 @@ function freeRect(withCard = false) {
     if (docked) { const right = parseFloat(getComputedStyle(card).right) || 0; cut({ l: w - right - card.offsetWidth, t: card.offsetTop, r: w, b: card.offsetTop + card.offsetHeight }, 'right'); }
     else cut({ l: 0, t: h - card.offsetHeight, r: w, b: h }, 'bottom');
   }
-  if (R.x1 - R.x0 < 90 || R.y1 - R.y0 < 90) return { x0: ci, y0: 0, x1: w - ci, y1: h };
+  if (R.x1 - R.x0 < 90 || R.y1 - R.y0 < 90) return { x0: 0, y0: 0, x1: w, y1: h };
   return R;
 }
 // Shift the look-at point (camera orientation and distance unchanged) so ground point P lands on screen point C.
@@ -184,7 +182,7 @@ function groundAt(C) {
 const STRIP_DEPTH = 290;                                      // world units the land spans north-south
 function overviewPolar() {
   if (isPortrait()) return OVERVIEW_PORTRAIT.polar;
-  const w = canvas.clientWidth, usable = Math.max(0.3, (w - 2 * (capInset() + 56)) / w);
+  const w = canvas.clientWidth, usable = Math.max(0.3, (w - 2 * 56) / w);
   const ppu = usable * w / OVERVIEW.span, fr = freeRect(false);
   const c = (0.8 * (fr.y1 - fr.y0)) / (STRIP_DEPTH * ppu);
   return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(Math.acos(Math.min(1, c))), 24, OVERVIEW.polar);
@@ -282,20 +280,15 @@ function stepFlight(now) {
 
 function flyToRegion(id) {
   if (!regionExists(id)) return;
+  if (id === 'japan') { frameJapan(); return; }                 // "All": the whole country (in 3D: the central Japan overview)
   ui.closeCard(); state.region = id; ui.setActiveRegion(id);
   flyToPose(regionPose(id), 3.5, { arc: 0.3 });
 }
-const regionExists = (id) => id === 'overview' || !!REGIONS[id];
+const regionExists = (id) => id === 'overview' || id === 'japan' || !!REGIONS[id];
 
 // ---------- 2D <-> 3D ----------
-const MIST_TIP = 'Mist · Shows in 3D';
-function syncModeUi() {                                        // mist has no effect on the flat map; the 3D stamp follows the mode
-  const flat = view.is2d(), mistBtn = document.querySelector('#seals [data-layer="mist"]');
-  if (mistBtn) {
-    mistBtn.classList.toggle('dim', flat);
-    if (flat) mistBtn.setAttribute('data-tip', MIST_TIP); else if (mistBtn.getAttribute('data-tip') === MIST_TIP) mistBtn.removeAttribute('data-tip');
-  }
-  document.querySelector('#seals [data-layer="3d"]')?.classList.toggle('on', !flat);
+function syncModeUi() {                                        // the 3D stamp follows the mode
+  document.querySelector('#seals [data-layer="3d"]')?.classList.toggle('on', !view.is2d());
 }
 // Tilt up into 3D over the same spot, or flatten back. The spot is the ground point under the centre of the free map area, so a round trip
 // does not drift (it is the camera target when that centre is the canvas centre). Ignored: not ready, same mode, or a mode flight is running.
@@ -314,11 +307,11 @@ function setViewMode(mode, { secs = 1.5 } = {}) {
   syncModeUi();
 }
 // whole country, flat map (in 3D: the central Japan overview)
+const japanPose = () => framePoints(japanPts(), 0.06);
 function frameJapan() {
   if (!view.is2d()) { flyToRegion('overview'); return; }
-  ui.closeCard(); state.region = 'overview'; ui.setActiveRegion('overview');
-  $('#region .en').textContent = 'Japan';                   // the caption for the whole country (a region or the overview sets it back)
-  flyToPose(framePoints(japanPts(), 0.06), 3.5, { arc: 0 });
+  ui.closeCard(); state.region = 'japan'; ui.setActiveRegion('japan');   // the caption reads "Japan"
+  flyToPose(japanPose(), 3.5, { arc: 0 });
 }
 
 // ---------- projected labels: landmarks and region names ----------
@@ -337,15 +330,13 @@ function addMark(kind, text, pos, key, side = 'top') {
   marks.push({ el, pos, kind, key, side, w: 0, h: 0, on: false });
 }
 if (document.fonts) { const remeasure = () => marks.forEach(m => { m.w = 0; }); document.fonts.ready.then(remeasure); document.fonts.addEventListener?.('loadingdone', remeasure); }
-// screen rects of fixed UI (title, seals, crests, caps...) that map labels should keep clear of
+// screen rects of fixed UI (title, seals, crests, key...) that map labels should keep clear of
 let uiRects = [], pinBlockers = [], uiRectsAt = -1e9;
 function refreshUiRects(force) {
   const now = performance.now();
   if (!force && now - uiRectsAt < 100) return uiRects; uiRectsAt = now;
-  const out = [], blk = [], w = canvas.clientWidth, h = canvas.clientHeight, ci = capInset();
-  const cap = [{ x: 0, y: 0, w: ci, h }, { x: w - ci, y: 0, w: ci, h }];
-  out.push(...cap); blk.push(...cap);
-  for (const sel of ['#title img', '#title .sub', '#region', '#who', '#seals', '#crests', '#filters', '#player', '#drawer', '#bar', '#inset']) {
+  const out = [], blk = [];
+  for (const sel of ['#title img', '#title .sub', '#region', '#who', '#seals', '#crests', '#filters', '#player', '#drawer', '#bar', '#inset', '#legend']) {
     const el = document.querySelector(sel); if (!el || el.hidden) continue;
     if (getComputedStyle(el).opacity === '0') continue;
     const r = el.getBoundingClientRect(); if (!r.width) continue;
@@ -386,31 +377,6 @@ function updateMarks(dist, w, h) {
     if (show) m.el.style.setProperty('--o', a.toFixed(2));
   }
   return obstacles;
-}
-
-// ---------- mist ----------
-const mists = [];
-// Soft washes, not shapes: tinted toward paper (never pure white), faded toward the band ends and edges, and faded out with camera distance
-// (hard-edged shards read badly up close; at overview the bands are too small to matter). Phase 4 redoes mist properly.
-const mistVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
-const mistFrag = `precision highp float;
-uniform sampler2D uMap; uniform vec3 uPaper; uniform float uOpacity;
-varying vec2 vUv;
-void main(){
-  vec4 t = texture2D(uMap, vUv);
-  float ends = smoothstep(0.0, 0.38, vUv.x) * (1.0 - smoothstep(0.62, 1.0, vUv.x));
-  float sides = smoothstep(0.0, 0.3, vUv.y) * (1.0 - smoothstep(0.7, 1.0, vUv.y));
-  float a = t.a * ends * ends * sides * uOpacity;
-  gl_FragColor = vec4(mix(uPaper, t.rgb, 0.18), a);
-}`;
-const MIST_FADE = { from: 18, full: 40, outFrom: 260, outTo: 440 };   // camera distance: thin in the closest views, full at region range, gone far out
-function addMist(mistTex, pos, y, scale, rot) {
-  const mat = new THREE.ShaderMaterial({ vertexShader: mistVert, fragmentShader: mistFrag, transparent: true, depthWrite: false,
-    uniforms: { uMap: { value: mistTex }, uPaper: { value: new THREE.Color('#F5EFE0') }, uOpacity: { value: 0.3 } } });
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
-  m.scale.set(scale * 8, scale * 0.8, 1); m.position.set(pos.x, y, pos.z); m.rotation.y = rot; m.renderOrder = 5;
-  m.userData = { x: pos.x, drift: 0.4 + Math.random() * 0.4, phase: Math.random() * 6, on: true };
-  scene.add(m); mists.push(m);
 }
 
 // ---------- state shared with the UI ----------
@@ -472,9 +438,7 @@ document.querySelectorAll('#seals .seal').forEach(b => b.addEventListener('click
   b.classList.toggle('on');
   const on = b.classList.contains('on');
   if (k === 'route') { state.route = on; route && route.setVisible(on); marker && marker.setVisible(on); }   // never moves the camera
-  if (k === 'mist') { state.mist = on; mists.forEach(m => { m.userData.on = on; }); }
   if (k === 'camera') state.cameraMoves = on;
-  if (k === 'sound') state.sound = on;  // Phase 6
   if (k === '3d') { view.setMode(on ? '3d' : '2d'); syncModeUi(); }   // syncModeUi puts the stamp back if the switch was ignored (a mode flight is running)
 }));
 
@@ -491,8 +455,8 @@ addEventListener('resize', resize);
 // ---------- main ----------
 async function init() {
   const q = new URLSearchParams(location.search);
-  const [washi, mistTex, placesJson, coastJson, waveTex] = await Promise.all([
-    tex('assets/web/washi.jpg'), tex('assets/web/mist.png'),
+  const [washi, placesJson, coastJson, waveTex] = await Promise.all([
+    tex('assets/web/washi.jpg'),
     fetch('data/places.json').then(r => r.json()).catch(() => []),
     fetch('data/japan-coast.json').then(r => r.json()).catch(() => null),
     tex('assets/web/wave.png').catch(() => null),              // the sea's sparse wave pattern (flatmap.js): a plain wash without it
@@ -542,19 +506,14 @@ async function init() {
     addMark('region', REGION_INFO[id].en, p, id, REGIONS[id].side);
   }
 
-  // mist bands around the Fuji skirt and the Hakone caldera
-  if (!q.has('nomist')) addMist(mistTex, { x: fuji.x + 6, z: fuji.z + 12 }, 2.4, 3.6, 0.2);
-  addMist(mistTex, { x: fuji.x - 14, z: fuji.z - 4 }, 3.0, 3.0, -0.6);
-  addMist(mistTex, { x: ashi.x - 4, z: ashi.z - 8 }, 1.7, 2.6, 0.9);
-  addMist(mistTex, { x: owak.x + 9, z: owak.z + 3 }, 2.1, 2.2, -1.3);
-
   resize();
   syncModeUi();
-  // intro: slow flight down to the overview of central Japan (flat map: straight down from 1.6 times the distance)
-  state.region = 'overview'; ui.setActiveRegion('overview');
-  const end = regionPose('overview');
+  // intro: slow flight down to the open view. Flat map: all of Japan, straight down from 1.25 times the distance. 3D: the central Japan overview.
+  const flat2d = view.is2d();
+  state.region = flat2d ? 'japan' : 'overview'; ui.setActiveRegion(state.region);
+  const end = flat2d ? japanPose() : regionPose('overview');
   if (state.cameraMoves) {
-    const startOff = view.is2d() ? sph(end.offset.length() * 1.6) : sph(end.offset.length() * 1.5, 22, 16);
+    const startOff = flat2d ? sph(end.offset.length() * 1.25) : sph(end.offset.length() * 1.5, 22, 16);
     controls.target.copy(end.target); camera.position.copy(end.target).add(startOff); camera.lookAt(end.target);
     flyToPose(end, 4, { arc: 0, from: startOff });
   } else { controls.target.copy(end.target); camera.position.copy(end.target).add(end.offset); camera.lookAt(end.target); }
@@ -586,8 +545,6 @@ function loop() {
   if (view.blend > 0 || lastBlend > 0 || far !== camera.far || Math.abs(near - lastNearFar) > near * 0.05) { camera.near = near; camera.far = far; camera.updateProjectionMatrix(); lastNearFar = near; }
   lastBlend = view.blend;
 
-  const mistK = smooth(MIST_FADE.from, MIST_FADE.full, dist) * (1 - smooth(MIST_FADE.outFrom, MIST_FADE.outTo, dist));
-  for (const m of mists) { m.visible = m.userData.on && mistK > 0.01 && view.blend < 0.5; m.material.uniforms.uOpacity.value = 0.3 * mistK; m.position.x = m.userData.x + Math.sin(t * 0.05 * m.userData.drift + m.userData.phase) * 3.0; m.lookAt(camera.position.x, m.position.y, camera.position.z); }
   for (const mat of world.materials) {
     mat.uniforms.uTime.value = t; mat.uniforms.uCamPos.value.copy(camera.position);
     mat.uniforms.uFogNear.value = dist * 1.0; mat.uniforms.uFogFar.value = dist * 2.8;
@@ -609,7 +566,7 @@ function loop() {
 window.__map = {
   flyToRegion, openPlace, state, ui, THREE, camera, controls, scene, view, framePoints, get coast() { return coast; },
   get pins() { return pins; }, get world() { return world; }, get places() { return places; },
-  lonLatToWorld, heightAtWorld, mistFade: MIST_FADE, freeRect, flyToPose, cutToPose, placePose, regionPose, aimPose, sph, groundTarget,
+  lonLatToWorld, heightAtWorld, freeRect, flyToPose, cutToPose, placePose, regionPose, aimPose, sph, groundTarget,
   get route() { return route; }, get trip() { return trip; }, get list() { return list; }, reloadTrip, get flat() { return flat; }, get inset() { return inset; }, get marker() { return marker; }, get art() { return art; },
   setWho(w) { Store.setWho(w); ui.setActiveRegion(state.region); refreshPins(); },
 };

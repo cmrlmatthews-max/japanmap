@@ -28,10 +28,7 @@
 </head>
 <body>
 <div id="scroll">
-  <img id="cap-left"  class="cap" src="assets/web/cap-left.png"  alt="">
-  <img id="cap-right" class="cap" src="assets/web/cap-right.png" alt="">
   <canvas id="map"></canvas>
-  <div id="capProbe"></div>
 
   <header id="title">
     <!-- the brush calligraphy stays as art; the English line under it is the readable title -->
@@ -44,14 +41,13 @@
   <nav id="seals" aria-label="Layers">
     <button class="seal" data-layer="3d" data-icon="cube" data-tip="3D · Tilt the map up" aria-label="3D view"><span class="lb">3D</span></button>
     <button class="seal on" data-layer="route" data-icon="route" aria-label="Route"><span class="lb">Route</span></button>
-    <button class="seal on" data-layer="mist" data-icon="mist" aria-label="Mist"><span class="lb">Mist</span></button>
     <button class="seal on" data-layer="camera" data-icon="camera" aria-label="Motion"><span class="lb">Motion</span></button>
-    <button class="seal" data-layer="sound" data-icon="sound" aria-label="Sound"><span class="lb">Sound</span></button>
     <button class="seal" data-open="list" data-icon="list" data-tip="List · Your trip, day by day" aria-label="Trip list" aria-pressed="false"><span class="lb">List</span></button>
   </nav>
 
   <nav id="crests" aria-label="Regions">
-    <button class="crest overview" data-region="overview" aria-label="All"><span class="ov" data-icon="overview"></span><i>All</i></button>
+    <button class="crest overview" data-region="japan" aria-label="All"><span class="ov" data-icon="overview"></span><i>All</i></button>
+    <button class="crest overview" data-region="overview" aria-label="Your Trip"><span class="ov" data-icon="route"></span><i>Your Trip</i></button>
     <button class="crest" data-region="tokyo"  aria-label="Tokyo"><img src="assets/web/crest-tokyo.png"  alt=""><i>Tokyo</i></button>
     <button class="crest" data-region="kyoto"  aria-label="Kyoto"><img src="assets/web/crest-kyoto.png"  alt=""><i>Kyoto</i></button>
     <button class="crest" data-region="nara"   aria-label="Nara"><img src="assets/web/crest-nara.png"   alt=""><i>Nara</i></button>
@@ -75,7 +71,7 @@
   <nav id="bar" aria-label="Map controls">
     <button class="tab" type="button" data-tab="regions" data-tip="Regions · Fly to a region" aria-label="Regions" aria-pressed="false"><span class="stamp" data-icon="regions"></span><span class="lb">Regions</span></button>
     <button class="tab" type="button" data-tab="filters" data-tip="Filters · Show or hide place types" aria-label="Filters" aria-pressed="false"><span class="stamp" data-icon="filters"></span><span class="lb">Filters</span></button>
-    <button class="tab" type="button" data-tab="layers" data-tip="Layers · Route, mist, motion, sound, 3D" aria-label="Layers" aria-pressed="false"><span class="stamp" data-icon="layers"></span><span class="lb">Layers</span></button>
+    <button class="tab" type="button" data-tab="layers" data-tip="Layers · Route, motion, 3D" aria-label="Layers" aria-pressed="false"><span class="stamp" data-icon="layers"></span><span class="lb">Layers</span></button>
     <button class="tab" type="button" data-tab="trip" data-tip="Trip · Open the itinerary" aria-label="Trip" aria-pressed="false"><span class="stamp" data-icon="route"></span><span class="lb">Trip</span></button>
     <button class="tab" type="button" data-tab="list" data-tip="List · Your trip, day by day" aria-label="List" aria-pressed="false"><span class="stamp" data-icon="list"></span><span class="lb">List</span></button>
   </nav>

@@ -13,9 +13,7 @@ const GAP = 10, MARGIN = 8, FADE_MS = 140;
 // ---- text table: a bold line and one optional detail line, plain English ----
 const LAYERS = {
   route:  ['Route',  'Show the trip by day'],
-  mist:   ['Mist',   'Soft clouds over the mountains'],
   camera: ['Motion', 'Camera flights on or off (off = still camera)'],
-  sound:  ['Sound',  'Coming soon'],
 };
 const CATS = {
   temple:       'Temples',
@@ -39,7 +37,8 @@ const CAT_HELP = {
   art:          ['Art', 'A museum or art space'],
 };
 const REGIONS = {
-  overview: { k: 'All', l: 'Show all of central Japan' },
+  japan:    { k: 'All', l: 'Show all of Japan' },
+  overview: { k: 'Your Trip', l: 'Show central Japan, where the trip runs' },
   tokyo:    { k: 'Fly to Tokyo' },
   kyoto:    { k: 'Fly to Kyoto' },
   nara:     { k: 'Fly to Nara' },

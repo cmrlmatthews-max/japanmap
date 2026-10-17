@@ -18,7 +18,7 @@
 
 const KM_PER_UNIT = 0.764;               // METERS_PER_UNIT in terrain.js / 1000
 const Y = -0.8, ORDER = -2;
-const FADE = { hidden: 110, full: 170 }; // camera distance: gone below 110, full above 170 (a close zoom hides the art)
+const FADE = { hidden: 180, full: 450 }; // camera distance: gone below 180, full above 450. The full-Japan view is thousands, Your Trip is about 700; the art is large, so a region view hides it
 const INK = '#5B5952';                   // grey-d: multiplies the ink toward grey
 const DEFAULT_OPACITY = 0.3;
 

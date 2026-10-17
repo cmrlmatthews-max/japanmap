@@ -3,6 +3,7 @@ import { CATS, CAT_ORDER } from './pins.js';
 import { iconSVG } from './icons.js';
 
 export const REGION_INFO = {
+  japan:    { kanji: '日本', yomi: 'にほん', en: 'Japan' },
   overview: { kanji: '中部・関西', yomi: 'ちゅうぶ・かんさい', en: 'Central Japan' },
   tokyo:    { kanji: '東京', yomi: 'とうきょう', en: 'Tokyo' },
   hakone:   { kanji: '箱根', yomi: 'はこね',     en: 'Hakone' },
