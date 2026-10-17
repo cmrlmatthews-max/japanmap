@@ -19,7 +19,7 @@ japan-3d-map/
 ├── places-and-data.md         ← first place list, transit, data sources, foliage dates, fonts (SUPERSEDED for coordinates by data/places.json)
 ├── gemini-prompts.md          ← image prompts + status table of what was generated
 ├── index.html, css/style.css, manifest.json
-├── sw.js                      ← offline cache, name 'nihon-no-tabi-v6'. Bump the version when a cached file changes.
+├── sw.js                      ← offline cache. Code and data load network first; big files (terrain, images) load cache first.
 ├── js/app.js                  ← renderer, ONE camera with two projections (2D orthographic blend, 3D perspective), region flights, place fly-to, free-area aiming, labels, mist
 ├── js/flatmap.js              ← flat map layers under the terrain: sea wash with wave tile, land sheet, coast ink ribbon, Lake Biwa
 ├── js/inset.js                ← the map key: a small Japan with the current view framed in vermilion
@@ -422,7 +422,7 @@ Status: the flat map redesign pushed 2026-10-15 from the cloud clone (`/home/cla
 - The older method (commit on the Mac, bundle, push from the cloud) still works when the Mac has changes the cloud does not.
 - GitHub Pages is on: branch `main`, folder root. Claude turned it on in Chrome (Settings, Pages). The GitHub API path for Pages is blocked through the cloud proxy.
 - Then Cade opens that URL on iPhone and iPad and uses Share, Add to Home Screen. He tests there.
-- After any change to a cached file, bump `CACHE` in `sw.js`. Then push again.
+- Changes to html, js, css and json files show on the next open with no cache bump (network first since 2026-10-17). Bump `CACHE` in `sw.js` only when a terrain .bin or an image changes, or the LOCAL list changes.
 
 ## How to fetch OSM data (Overpass)
 
@@ -480,6 +480,6 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 - Chrome blocks a second automatic download per host. See "How to fetch terrain".
 - The Mac has no GitHub credentials. Push from the cloud. See "How to publish".
 - The repo is `japanmap`. The Mac folder is `japan-3d-map`. Do not mix them up.
-- The service worker caches the app files. After a change, bump `CACHE` in `sw.js`, or a phone shows the old version.
+- The service worker loads code network first, with a 4 s fallback to the saved copy (offline use in Japan). Big files are cache first: after a terrain or image change, bump `CACHE` in `sw.js`, or a phone shows the old file.
 - OSM renamed the Hakone Tozan Railway to 小田急箱根鉄道線 in 2024. Search both names.
 - Chrome blocks a second automatic download per site (overpass-api.de too). Use osascript curl instead.
