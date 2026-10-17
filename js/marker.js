@@ -15,24 +15,23 @@ const INK = '#2C2C2A', VERM = '#C8341E', PAPER = '#F5EFE0';
 export function drawTraveler() {
   const cv = document.createElement('canvas'); cv.width = 96; cv.height = 128;
   const g = cv.getContext('2d'); if (!g) return cv;
-  const hat = () => { g.beginPath(); g.moveTo(47, 6); g.bezierCurveTo(56, 18, 70, 30, 84, 41); g.quadraticCurveTo(48, 47, 12, 41); g.bezierCurveTo(26, 30, 38, 18, 47, 6); g.closePath(); };
-  const head = () => { g.beginPath(); g.arc(50, 52, 7.5, 0, 6.2832); g.closePath(); };
-  const robe = () => { g.beginPath(); g.moveTo(40, 58); g.lineTo(60, 58); g.lineTo(65, 96); g.lineTo(38, 96); g.closePath(); };
-  const limbs = () => {                                                // legs in mid stride, one arm, the staff
-    for (const [a, b, c, d, w] of [[45, 94, 34, 122, 8], [57, 94, 67, 122, 8], [55, 64, 67, 78, 6.5], [62, 52, 83, 123, 4.5]]) {
+  const hat = () => { g.beginPath(); g.moveTo(47, 5); g.bezierCurveTo(54, 17, 68, 30, 82, 42); g.quadraticCurveTo(48, 48, 14, 42); g.bezierCurveTo(28, 30, 40, 17, 47, 5); g.closePath(); };
+  const head = () => { g.beginPath(); g.arc(50, 53, 7, 0, 6.2832); g.closePath(); };
+  const robe = () => { g.beginPath(); g.moveTo(43, 59); g.lineTo(59, 59); g.lineTo(63, 98); g.lineTo(35, 98); g.closePath(); };
+  const limbs = () => {                                                // legs in mid stride, one arm, the staff held forward
+    for (const [a, b, c, d, w] of [[43, 96, 31, 122, 8], [56, 96, 68, 122, 8], [55, 66, 70, 76, 6.5], [70, 46, 85, 123, 4.5]]) {
       g.lineWidth = w + g._pad; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
     }
   };
   g.lineJoin = 'round'; g.lineCap = 'round';
-  g._pad = 7; g.lineWidth = 7;                                         // a thin paper halo, so the ink reads on dark ground
+  g._pad = 10; g.lineWidth = 10;                                        // a thin paper halo, so the ink reads on dark ground
   g.fillStyle = g.strokeStyle = 'rgba(245,239,224,.92)';
   for (const f of [hat, head, robe]) { f(); g.fill(); g.stroke(); }
   limbs();
   g._pad = 0; g.fillStyle = g.strokeStyle = INK;
   for (const f of [hat, head, robe]) { f(); g.fill(); }
   limbs();
-  g.strokeStyle = VERM; g.lineWidth = 5; g.beginPath(); g.moveTo(17, 40); g.quadraticCurveTo(48, 46, 80, 39.5); g.stroke();   // the cord along the hat rim
-  g.lineWidth = 3; g.beginPath(); g.moveTo(40, 44); g.lineTo(43, 58); g.stroke();                                              // its tail
+  g.strokeStyle = VERM; g.lineWidth = 5.5; g.beginPath(); g.moveTo(18, 41); g.quadraticCurveTo(48, 47, 78, 40.5); g.stroke();   // the cord along the hat rim
   return cv;
 }
 
@@ -52,7 +51,7 @@ export function initMarker(ctx, route, trip) {
 
   // --- texture: the drawn pilgrim first, the image when it arrives ---
   let aspect = 0.75;
-  const mat = new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
+  const mat = new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, fog: false, opacity: 0 });
   const setMap = (t, a) => { const old = mat.map; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; mat.map = t; mat.needsUpdate = true; aspect = a; if (old && old !== t) old.dispose(); };
   setMap(new THREE.CanvasTexture(drawTraveler()), 0.75);
   new THREE.TextureLoader().load(IMG, (t) => {
@@ -62,7 +61,7 @@ export function initMarker(ctx, route, trip) {
 
   const fig = new THREE.Sprite(mat);                                     // feet at the bottom centre
   fig.center.set(0.5, 0); fig.renderOrder = 25; fig.frustumCulled = false;
-  const shMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(drawShadow()), transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
+  const shMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(drawShadow()), transparent: true, fog: false, depthTest: false, depthWrite: false, opacity: 0 });
   const shadow = new THREE.Sprite(shMat);
   shadow.renderOrder = 24; shadow.frustumCulled = false;
   const mesh = new THREE.Group(); mesh.name = 'traveler-marker'; mesh.visible = false;

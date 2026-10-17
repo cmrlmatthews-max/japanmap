@@ -173,7 +173,6 @@ export function initList(ctx, hooks) {
     root.classList.toggle('open', b); root.setAttribute('aria-hidden', String(!b));
     if (stamp) { stamp.classList.toggle('on', b); stamp.setAttribute('aria-pressed', String(b)); }
     if (phone.matches) { if (b) ui.setTab && ui.setTab('list'); else if (body.dataset.tab === 'list') ui.setTab && ui.setTab(null); }
-    if (b) x.focus({ preventScroll: true });
   }
   if (stamp) stamp.addEventListener('click', () => setOpen(!open));
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && open) setOpen(false); });

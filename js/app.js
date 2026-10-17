@@ -280,6 +280,7 @@ function stepFlight(now) {
 
 function flyToRegion(id) {
   if (!regionExists(id)) return;
+  if (trip && trip.playing) trip.pause();                       // the user takes over: a playing trip would pull the camera back to its hop (Tokyo pins in the Hakone view)
   if (id === 'japan') { frameJapan(); return; }                 // "All": the whole country (in 3D: the central Japan overview)
   ui.closeCard(); state.region = id; ui.setActiveRegion(id);
   flyToPose(regionPose(id), 3.5, { arc: 0.3 });
@@ -310,6 +311,7 @@ function setViewMode(mode, { secs = 1.5 } = {}) {
 const japanPose = () => framePoints(japanPts(), 0.06);
 function frameJapan() {
   if (!view.is2d()) { flyToRegion('overview'); return; }
+  if (trip && trip.playing) trip.pause();
   ui.closeCard(); state.region = 'japan'; ui.setActiveRegion('japan');   // the caption reads "Japan"
   flyToPose(japanPose(), 3.5, { arc: 0 });
 }
