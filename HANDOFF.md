@@ -483,3 +483,5 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 - The service worker loads code network first, with a 4 s fallback to the saved copy (offline use in Japan). Big files are cache first: after a terrain or image change, bump `CACHE` in `sw.js`, or a phone shows the old file.
 - OSM renamed the Hakone Tozan Railway to 小田急箱根鉄道線 in 2024. Search both names.
 - Chrome blocks a second automatic download per site (overpass-api.de too). Use osascript curl instead.
+
+**Opening frame (2026-10-17):** `japanPose()` centres whole Japan on the page's middle line (the title axis), as far as the free area allows. The opening fit ran while the itinerary sheet was still open, so the map sat left of centre once the sheet folded. `watchOpeningFrame()` now re-fits the whole-Japan view with a 1.6 s glide whenever the layout changes, until the user first touches the map or leaves the "All" view.

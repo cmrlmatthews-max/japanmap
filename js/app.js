@@ -225,7 +225,7 @@ function fitBox(points, pad) {
   for (const p of points) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
   const R = freeRect(false), fw = (R.x1 - R.x0) / w, fh = (R.y1 - R.y0) / h;
   const D = Math.max((x1 - x0) / 2 / (FOV_TAN * (w / h) * fw), (z1 - z0) / 2 / (FOV_TAN * fh)) / (1 - 2 * pad);
-  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, D };
+  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, D, hw: (x1 - x0) / 2 };
 }
 function framePoints(points, pad) {
   const f = fitBox(points, pad), D = THREE.MathUtils.clamp(f.D, 8, controls.maxDistance);
@@ -308,7 +308,44 @@ function setViewMode(mode, { secs = 1.5 } = {}) {
   syncModeUi();
 }
 // whole country, flat map (in 3D: the central Japan overview)
-const japanPose = () => framePoints(japanPts(), 0.06);
+// Whole Japan: the same fit, but centred on the page's middle line (the title's axis), not the middle of the free area.
+// The side columns are not the same width, so the free area's middle sits left of the title and the map looked off centre.
+// The map still stays inside the free area: the centre moves only as far as the fit allows.
+function japanPose() {
+  const pts = japanPts(), f = fitBox(pts, 0.06), D = THREE.MathUtils.clamp(f.D, 8, controls.maxDistance);
+  const R = freeRect(false), C = rectCentre(R);
+  if (view.is2d()) {
+    const half = f.hw / view.wpp(D) / (1 - 2 * 0.06);                      // half the map width on screen, pad included
+    const lo = R.x0 + half, hi = R.x1 - half, mid = canvas.clientWidth / 2;
+    C.x = lo <= hi ? THREE.MathUtils.clamp(mid, lo, hi) : C.x;
+  }
+  return aimPose(new THREE.Vector3(f.cx, 0, f.cz), sph(D, VIEW.polar, VIEW.az), C);
+}
+// The opening frame is fitted before the side columns and the itinerary sheet take their final places (the sheet starts open, then folds).
+// So until the user first touches the map, the whole-Japan view re-fits itself (a short glide) whenever the layout changes.
+function watchOpeningFrame() {
+  let held = true, timer = 0;
+  const release = () => { held = false; };
+  canvas.addEventListener('pointerdown', release, { once: true });
+  canvas.addEventListener('wheel', release, { once: true, passive: true });
+  const ok = () => held && view.is2d() && state.region === 'japan' && !(trip && (trip.playing || trip.cursor)) && !document.body.classList.contains('card-open');
+  const refit = () => {
+    if (held && state.region !== 'japan') held = false;               // the user went somewhere: the opening is over
+    if (!ok()) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      if (!ok()) return;
+      japanDist = fitBox(japanPts(), 0.06).D; applyModeLimits();      // the zoom-out cap follows the new free area too
+      const p = japanPose(), D = p.offset.length(), now = camera.position.distanceTo(controls.target);
+      const px = p.target.distanceTo(controls.target) / view.wpp(D);
+      if (px < 4 && Math.abs(D - now) / D < 0.02) return;              // already there
+      flyToPose(p, 1.6, { arc: 0 });
+    }, 350);
+  };
+  new MutationObserver(refit).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', refit);
+  setTimeout(refit, 4300);                                          // once more as the intro flight lands
+}
 function frameJapan() {
   if (!view.is2d()) { flyToRegion('overview'); return; }
   if (trip && trip.playing) trip.pause();
@@ -525,6 +562,7 @@ async function init() {
   $('#loading').classList.add('done');
   state.ready = true;
   if (!Store.who) setTimeout(() => ui.showWho(), 600);
+  watchOpeningFrame();
   loop();
 }
 
