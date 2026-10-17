@@ -1,70 +1,80 @@
-// The koi: the fly-through marker. A flat ink fish that swims at the tip of the ink while the trip plays, is scrubbed or rests at a stop.
-// It reads the trip cursor (trip.progressPoint) and is a plane lying on the ground, SIZE_PX long on screen, drawn above the pins.
-// Image: assets/web/koi-marker.png (transparent, the fish facing right). Until it loads, or if it is missing, an ink fish drawn in canvas stands in.
+// The traveler: the marker for the trip. One pilgrim in ink (straw kasa hat, walking staff, side view) who hops along the route
+// while the trip plays, is scrubbed or rests at a stop. He is a sprite that always faces the screen, feet on the trip cursor (trip.progressPoint),
+// TALL_PX high on screen, drawn above the pins. He mirrors to face the way he walks (on screen), hops a few px, and stands still at a stop.
+// Image: assets/web/traveler.png (transparent, figure facing right, feet at the bottom edge). Until it loads, or if it is missing, a drawn pilgrim stands in.
 
-const IMG = 'assets/web/koi-marker.png';
-const SIZE_PX = 30;                     // length on screen, CSS px
+const IMG = 'assets/web/traveler.png';
+const TALL_PX = 34;                     // height on screen, CSS px
 const LIFT = 0.3;                       // world units above the path
 const FADE_S = 0.25;                    // fade in / out
-const WIGGLE_DEG = 6, HZ = 1.2, PULSE = 0.03;
+const HOP_PX = 7, HOP_S = 0.5;          // hop height on screen and period
+const MOVE_PX_S = 4;                    // faster than this on screen counts as walking
 const INK = '#2C2C2A', VERM = '#C8341E', PAPER = '#F5EFE0';
 
-// ---------- the stand-in fish: 128 x 64, head to the right ----------
-export function drawKoi() {
-  const cv = document.createElement('canvas'); cv.width = 128; cv.height = 64;
+// ---------- the stand-in pilgrim: 96 x 128, facing right, feet on the bottom edge ----------
+export function drawTraveler() {
+  const cv = document.createElement('canvas'); cv.width = 96; cv.height = 128;
   const g = cv.getContext('2d'); if (!g) return cv;
-  const body = () => {                                           // tapered body, long forked tail
-    g.beginPath(); g.moveTo(122, 33);
-    g.bezierCurveTo(121, 25, 112, 20, 98, 19.5);                  // nose, forehead
-    g.bezierCurveTo(82, 19, 66, 22, 52, 28);                      // back, narrowing to the tail stalk
-    g.bezierCurveTo(46, 30.5, 42, 31, 38, 31.5);
-    g.bezierCurveTo(30, 29, 20, 20, 6, 8);                        // upper lobe of the tail, swept back
-    g.bezierCurveTo(14, 20, 20, 27, 22, 32);                      // the fork
-    g.bezierCurveTo(20, 37, 14, 44, 6, 56);                       // lower lobe
-    g.bezierCurveTo(20, 50, 30, 36, 38, 32.5);                    // back to the stalk
-    g.bezierCurveTo(52, 38, 70, 46, 92, 46);                      // belly
-    g.bezierCurveTo(108, 46, 120, 40, 122, 33);                   // chin
-    g.closePath();
+  const hat = () => { g.beginPath(); g.moveTo(47, 6); g.bezierCurveTo(56, 18, 70, 30, 84, 41); g.quadraticCurveTo(48, 47, 12, 41); g.bezierCurveTo(26, 30, 38, 18, 47, 6); g.closePath(); };
+  const head = () => { g.beginPath(); g.arc(50, 52, 7.5, 0, 6.2832); g.closePath(); };
+  const robe = () => { g.beginPath(); g.moveTo(40, 58); g.lineTo(60, 58); g.lineTo(65, 96); g.lineTo(38, 96); g.closePath(); };
+  const limbs = () => {                                                // legs in mid stride, one arm, the staff
+    for (const [a, b, c, d, w] of [[45, 94, 34, 122, 8], [57, 94, 67, 122, 8], [55, 64, 67, 78, 6.5], [62, 52, 83, 123, 4.5]]) {
+      g.lineWidth = w + g._pad; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke();
+    }
   };
-  const fin = () => {                                            // pectoral fin, swept back
-    g.beginPath(); g.moveTo(98, 41); g.bezierCurveTo(92, 49, 82, 55, 70, 56); g.bezierCurveTo(78, 51, 84, 46, 90, 41); g.closePath();
-  };
-  g.lineJoin = 'round';
-  g.strokeStyle = 'rgba(245,239,224,.9)'; g.lineWidth = 6;       // a paper halo, so the ink reads on dark ground
-  body(); g.stroke(); fin(); g.stroke();
-  g.fillStyle = INK; body(); g.fill(); fin(); g.fill();
-  g.fillStyle = PAPER; g.globalAlpha = 0.16;                     // a few pale patches on the back, like a koi
-  for (const [x, y, rx, ry] of [[82, 26, 11, 4.2], [60, 29.5, 8, 3.2], [99, 27, 4.5, 2.8]]) { g.beginPath(); g.ellipse(x, y, rx, ry, -0.12, 0, 6.2832); g.fill(); }
-  g.globalAlpha = 1;
-  g.fillStyle = VERM; g.beginPath(); g.arc(109, 28.5, 3.2, 0, 6.2832); g.fill();    // the eye
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  g._pad = 7; g.lineWidth = 7;                                         // a thin paper halo, so the ink reads on dark ground
+  g.fillStyle = g.strokeStyle = 'rgba(245,239,224,.92)';
+  for (const f of [hat, head, robe]) { f(); g.fill(); g.stroke(); }
+  limbs();
+  g._pad = 0; g.fillStyle = g.strokeStyle = INK;
+  for (const f of [hat, head, robe]) { f(); g.fill(); }
+  limbs();
+  g.strokeStyle = VERM; g.lineWidth = 5; g.beginPath(); g.moveTo(17, 40); g.quadraticCurveTo(48, 46, 80, 39.5); g.stroke();   // the cord along the hat rim
+  g.lineWidth = 3; g.beginPath(); g.moveTo(40, 44); g.lineTo(43, 58); g.stroke();                                              // its tail
+  return cv;
+}
+
+function drawShadow() {                                                 // a soft ink ellipse
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 32;
+  const g = cv.getContext('2d'); if (!g) return cv;
+  const r = g.createRadialGradient(32, 16, 1, 32, 16, 30);
+  r.addColorStop(0, 'rgba(44,44,42,.9)'); r.addColorStop(0.6, 'rgba(44,44,42,.45)'); r.addColorStop(1, 'rgba(44,44,42,0)');
+  g.save(); g.translate(0, 16); g.scale(1, 0.5); g.translate(0, -16); g.fillStyle = r; g.fillRect(0, 0, 64, 32); g.restore();
   return cv;
 }
 
 export function initMarker(ctx, route, trip) {
   const { THREE, scene, camera, canvas, view, state } = ctx;
   const tanHalf = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const reduced = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-  // --- texture: the drawn fish first, the image when it arrives ---
-  let aspect = 2;
-  const mat = new THREE.MeshBasicMaterial({ transparent: true, depthTest: false, depthWrite: false, opacity: 0, side: THREE.DoubleSide });
+  // --- texture: the drawn pilgrim first, the image when it arrives ---
+  let aspect = 0.75;
+  const mat = new THREE.SpriteMaterial({ transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
   const setMap = (t, a) => { const old = mat.map; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; mat.map = t; mat.needsUpdate = true; aspect = a; if (old && old !== t) old.dispose(); };
-  setMap(new THREE.CanvasTexture(drawKoi()), 2);
+  setMap(new THREE.CanvasTexture(drawTraveler()), 0.75);
   new THREE.TextureLoader().load(IMG, (t) => {
     const im = t.image;
-    setMap(t, im && im.width && im.height ? im.width / im.height : 2);
-  }, undefined, () => { /* no image yet: the drawn fish stays */ });
+    setMap(t, im && im.width && im.height ? im.width / im.height : 0.75);
+  }, undefined, () => { /* no image yet: the drawn pilgrim stays */ });
 
-  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), mat);
-  mesh.name = 'koi-marker'; mesh.renderOrder = 25; mesh.frustumCulled = false; mesh.visible = false;
-  mesh.rotation.order = 'YXZ';                                   // lie flat first (x), then turn about the vertical (y)
-  mesh.rotation.x = -Math.PI / 2;
+  const fig = new THREE.Sprite(mat);                                     // feet at the bottom centre
+  fig.center.set(0.5, 0); fig.renderOrder = 25; fig.frustumCulled = false;
+  const shMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(drawShadow()), transparent: true, depthTest: false, depthWrite: false, opacity: 0 });
+  const shadow = new THREE.Sprite(shMat);
+  shadow.renderOrder = 24; shadow.frustumCulled = false;
+  const mesh = new THREE.Group(); mesh.name = 'traveler-marker'; mesh.visible = false;
+  mesh.add(shadow, fig);
   scene.add(mesh);
 
   // --- per frame ---
-  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3();
-  let userOn = true, alpha = 0, time = 0, yaw = 0, haveYaw = false, placed = false;
+  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _last = new THREE.Vector3();
+  let userOn = true, alpha = 0, placed = false, haveLast = false;
+  let face = 1, faceTo = 1, phase = 0, walkHold = 0;                     // face: +1 right on screen, -1 left (eased); phase counts hops
 
-  function wppAt(point, dist, h) {                               // world units per CSS px at this point (same rule as the pins)
+  function wppAt(point, dist, h) {                                       // world units per CSS px at this point (same rule as the pins)
     const bl = view ? view.blend : 0;
     if (bl >= 1) return view.wpp(dist);
     camera.getWorldDirection(_f);
@@ -74,36 +84,51 @@ export function initMarker(ctx, route, trip) {
   }
 
   function update(dt, dist) {
-    time += dt;
     const live = userOn && state.route !== false && !!trip && !!trip.cursor && typeof trip.progressPoint === 'function' && !!trip.progressPoint(P, T.set(0, 0, 0));
     alpha = Math.min(1, Math.max(0, alpha + (live ? dt : -dt) / FADE_S));
     mesh.visible = alpha > 0.004;
-    if (!mesh.visible) { haveYaw = false; placed = false; return; }
-    mat.opacity = alpha;
-    if (live) {
-      placed = true;
-      mesh.position.set(P.x, P.y + LIFT, P.z);
-      if (T.x * T.x + T.z * T.z > 1e-8) {                        // turn to the heading (shortest way round); a stop keeps the last heading
-        const want = Math.atan2(-T.z, T.x);
-        if (!haveYaw) { yaw = want; haveYaw = true; }
-        else yaw += Math.atan2(Math.sin(want - yaw), Math.cos(want - yaw)) * (1 - Math.exp(-dt * 12));
-        yaw = Math.atan2(Math.sin(yaw), Math.cos(yaw));
-      }
-    }
+    if (!mesh.visible) { placed = false; haveLast = false; phase = 0; return; }
+    if (live) { placed = true; mesh.position.set(P.x, P.y + LIFT, P.z); }
     if (!placed) { mesh.visible = false; return; }
-    const still = state.cameraMoves === false;                   // Motion off: no wiggle, no pulse
-    const ph = time * Math.PI * 2 * HZ;
-    mesh.rotation.y = yaw + (still ? 0 : Math.sin(ph) * THREE.MathUtils.degToRad(WIGGLE_DEG));
-    const pulse = still ? 1 : 1 + PULSE * Math.sin(ph + 1.3);
-    const len = SIZE_PX * wppAt(mesh.position, dist, canvas.clientHeight || 1) * pulse;
-    if (aspect >= 1) mesh.scale.set(len, len / aspect, 1); else mesh.scale.set(len * aspect, len, 1);
+
+    camera.updateMatrixWorld();
+    _r.setFromMatrixColumn(camera.matrixWorld, 0); _u.setFromMatrixColumn(camera.matrixWorld, 1);   // screen right and up, in the world
+    const wpp = wppAt(mesh.position, dist, canvas.clientHeight || 1);
+
+    // heading on screen: the tangent against the screen's right axis; a stop or a straight up / down heading keeps the last facing
+    if (live && T.lengthSq() > 1e-12) { const s = T.dot(_r) / T.length(); if (s > 0.15) faceTo = 1; else if (s < -0.15) faceTo = -1; }
+    face += (faceTo - face) * (1 - Math.exp(-dt * 20));
+
+    // walking = the point is really moving on screen (paused, a stop and a still camera all stand still)
+    let walking = false;
+    if (live && haveLast && dt > 0) walking = _d.subVectors(mesh.position, _last).length() / wpp / dt > MOVE_PX_S;
+    _last.copy(mesh.position); haveLast = live;
+    walkHold = walking ? 0.12 : Math.max(0, walkHold - dt);
+    const hops = state.cameraMoves !== false && !reduced();
+    const go = hops && walkHold > 0;
+    if (go) phase += dt / HOP_S;
+    else { const next = Math.ceil(phase - 1e-6); phase = Math.min(next, phase + dt / HOP_S); if (phase >= next - 1e-6) phase = next; }   // finish the landing, then stand
+    if (phase > 1e6) phase %= 1;
+    const s = Math.abs(Math.sin(Math.PI * phase));                       // 0 on the ground, 1 at the top, one hop per HOP_S
+    const land = Math.max(0, 1 - s / 0.3);                               // squash just after and before touching down
+    const top = Math.pow(s, 4);                                          // a small stretch at the top
+    const sy = 1 - 0.1 * land + 0.04 * top, sx = 1 + 0.08 * land - 0.02 * top;
+
+    const h = TALL_PX * wpp, w = h * aspect;
+    fig.scale.set(face * w * sx, h * sy, 1);
+    fig.position.copy(_u).multiplyScalar(HOP_PX * wpp * s);
+    fig.material.opacity = alpha;
+    const air = 1 - 0.45 * s;                                            // the shadow shrinks and fades in the air
+    shadow.scale.set(Math.max(w, h * 0.5) * 0.9 * air, h * 0.2 * air, 1);
+    shadow.position.set(0, 0, 0);
+    shMat.opacity = alpha * 0.4 * air;
   }
 
   return {
     update,
-    setVisible(b) { userOn = !!b; },                             // the app's Route switch; the marker also follows state.route by itself
+    setVisible(b) { userOn = !!b; },                                     // the app's Route switch; the marker also follows state.route by itself
     mesh,
     get opacity() { return alpha; },
-    dispose() { scene.remove(mesh); mesh.geometry.dispose(); if (mat.map) mat.map.dispose(); mat.dispose(); },
+    dispose() { scene.remove(mesh); if (mat.map) mat.map.dispose(); mat.dispose(); if (shMat.map) shMat.map.dispose(); shMat.dispose(); },
   };
 }

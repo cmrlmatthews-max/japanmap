@@ -375,7 +375,7 @@ export function initTrip(ctx, route) {
     const seg = segs[segAt(time)];
     if (!seg) return `Day ${activeDay + 1} · ${daySummary(activeDay)}`;
     const p = placeOf(seg.id);
-    return `Day ${seg.d + 1} · ${regionEn(days[seg.d].region)} · ${p?.short || p?.name || ''}`;
+    return `Day ${seg.d + 1} · ${regionEn(p?.region || days[seg.d].region)} · ${p?.short || p?.name || ''}`;   // the stop's own region, not the day's
   }
   function paintCaption(force) {
     const t = captionNow();
