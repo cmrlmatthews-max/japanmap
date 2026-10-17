@@ -512,7 +512,7 @@ export function initTrip(ctx, route) {
   function placeLayout() {
     if (docked()) { if (player.parentNode !== scrollEl) scrollEl.insertBefore(player, drawer); }
     else if (player.parentNode !== sheet) sheet.insertBefore(player, full);
-    setOpen(docked() ? !landPhoneMQ.matches : false);
+    setOpen(docked() && !landPhoneMQ.matches ? open : false);               // the page opens with the sheet closed (spine tab only); a reload keeps it as the user left it
   }
   dockMQ.addEventListener?.('change', placeLayout); landPhoneMQ.addEventListener?.('change', placeLayout);
 

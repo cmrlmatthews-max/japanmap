@@ -249,7 +249,7 @@ The app now shows the trip route on the terrain and flies along it. Cade gave "d
 
 **Drawer and player** (`js/trip.js`)
 - iPhone portrait and iPad portrait: a bottom sheet. The handle row holds the play button and reads "Day 3 · Kyoto · 3 stops". It opens to about 62 percent.
-- iPad landscape: docked on the right, about 354 px, open by default. The crests move to the left of the drawer.
+- iPad landscape and desktop: docked on the right, about 354 px. It starts folded to the spine tab (changed 2026-10-17); tap the spine to open it. A plan reload keeps it as the user left it. The crests move to the left of the drawer.
 - iPhone landscape: docked, 260 px, folded to a slim spine by default.
 - The drawer shows day tabs, the day's kanji and title, the stay, stops, and legs with mode marks. Tap a day to frame it. Tap a stop to fly there and open its card.
 - Timeline: a 6 to 8 s hop into each stop, then a 3 s pause. The whole trip lasts about 5 min 40 s. The ink draws with the camera.

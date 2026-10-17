@@ -1,5 +1,5 @@
 // Offline cache for the Home Screen app. Bump CACHE whenever any listed file changes.
-const CACHE = 'nihon-no-tabi-v10';
+const CACHE = 'nihon-no-tabi-v11';
 const LOCAL = [
   './', './index.html', './manifest.json', './css/style.css', './css/route.css', './css/trip.css', './css/tips.css', './css/inset.css', './css/legend.css', './css/list.css',
   './js/app.js', './js/terrain.js', './js/ink-shader.js', './js/pins.js', './js/ui.js', './js/route.js', './js/trip.js', './js/tips.js', './js/icons.js',
