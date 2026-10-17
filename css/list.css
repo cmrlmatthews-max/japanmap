@@ -1,7 +1,7 @@
 /* "Your Trip" list (js/list.js): a washi page in the style of the itinerary drawer (trip.css).
    Phone: fills the screen above the bottom bar. Wider: a page on the right, under the person button. */
 
-#list { position: absolute; z-index: 9; top: 64px; right: calc(var(--cap-in, 0px) + 8px + var(--sar)); bottom: 12px; width: min(400px, calc(100% - 96px));
+#list { position: absolute; z-index: 9; top: var(--keyb); right: calc(8px + var(--sar)); bottom: 12px; width: min(400px, calc(100% - 96px));
         background: var(--paper) url('../assets/web/itinerary-bg.jpg') 50% 0 / cover no-repeat; border: 1px solid var(--grey-l); border-radius: 6px; overflow: hidden; color: var(--ink);
         opacity: 0; visibility: hidden; pointer-events: none; transform: translateX(18px); transition: opacity .3s ease, transform .32s ease, visibility 0s linear .32s; }
 #list.open { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition-delay: 0s; }

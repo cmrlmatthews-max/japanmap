@@ -1,7 +1,7 @@
 # HANDOFF — Journey Through Japan (日本の旅) 3D map
 
 Read this first in a new chat. It holds the state, the decisions, and the working method.
-Last update: 2026-10-15, the flat map redesign (2D default, 3D stamp, phone bottom bar, art). The app is live on GitHub Pages.
+Last update: 2026-10-17, the trip list pass (trip-only pins, Your Trip list with swaps, full-Japan start, no rollers, no mist or sound, traveler marker). The app is live on GitHub Pages.
 
 ## Project in one paragraph
 
@@ -23,7 +23,9 @@ japan-3d-map/
 ├── js/app.js                  ← renderer, ONE camera with two projections (2D orthographic blend, 3D perspective), region flights, place fly-to, free-area aiming, labels, mist
 ├── js/flatmap.js              ← flat map layers under the terrain: sea wash with wave tile, land sheet, coast ink ribbon, Lake Biwa
 ├── js/inset.js                ← the map key: a small Japan with the current view framed in vermilion
-├── js/marker.js               ← the koi that swims along the route in the fly-through
+├── js/marker.js               ← the hopping ink pilgrim that walks the route in the fly-through
+├── js/itinerary.js            ← loads an itinerary and applies this device's swaps (shared by route.js and trip.js)
+├── js/list.js                 ← the Your Trip list: days, stops, other options, swap, undo, reset
 ├── js/art.js                  ← ink paintings on the sea (data/art.json)
 ├── js/terrain.js              ← world frame, file loaders, base and patch meshes, lonLatToWorld(), heightAtWorld()
 ├── js/ink-shader.js           ← ShaderMaterial: height bands, dry-brush streaks, contours, coast, washi grain, edge fade, patch cut-outs
@@ -329,6 +331,32 @@ Cade's direction: the 3D map was hard to get a bearing on. Decisions (all his, 2
 - Station labels and the thin local lines are hard to see on the dark Hakone relief in 2D, even with the lighter wash.
 - The mist is 3D only. The Mist stamp is dim in 2D.
 - Nobody has tested the flat map on a real iPhone or iPad.
+
+## Trip list pass (2026-10-17)
+
+Cade's decisions, all final:
+
+- **Map key:** top right, under the person button, on every size. The "Lines" tab sits under it. `--keyb` in css/style.css is the bottom of that stack. The crests, the docked drawer, the card and the list start there.
+- **Pins:** the map shows only the trip set: the itinerary stops after swaps, plus "Add to trip" places. The place with the open card also shows. `pins.setTripSet()`.
+- **Trip list** (js/list.js, css/list.css): a "List" tab (phone, 5th tab) and a "List" stamp (left column). It shows each day's stops. Under each day, "Other options" lists places in the same region that are not in the trip. "Swap in" replaces a stop. Each swap has "Undo", and the footer has "Reset to starter plan" (swaps only).
+- **Swaps:** they save on this device only, in localStorage `jmap.swaps.v1` (`{ cade: { "<day>:<starter id>": "<new id>" } }`). js/itinerary.js is the one loader for route.js and trip.js. It applies the swaps and rewrites legs. A walk that becomes too long turns into a local line with an estimated time. `app.reloadTrip()` refreshes the route, trip, pins, and list.
+- **Rollers:** removed on every size. Plain washi page.
+- **Default view:** the full-Japan flat map, caption "Japan". "All" (`data-region="japan"`) goes there. "Your Trip" (`data-region="overview"`) goes to the central Japan overview.
+- **Sea art:** 3 to 4 times bigger, on open sea for the Japan frame (data/art.json). It fades from distance 180 to 450.
+- **Mist and Sound:** removed completely. The mist and sound icons stay in js/icons.js, but nothing uses them.
+- **Traveler marker** (js/marker.js): an ink pilgrim, assets/web/traveler.png (Gemini, 2026-10-17). It replaces the koi. The figure is a camera-facing sprite, 34 px tall, with its feet on the trip cursor. It mirrors to face the direction of travel. It hops 7 px every 0.5 s while it moves on screen, and it squashes on landing. A shadow sits under it. At a stop it steps 22 px aside, off the pin. With Motion off or reduced motion, it glides without hops. `drawTraveler()` is the stand-in.
+- **Bug fixes:**
+  - The player caption now uses the stop's own region ("Day 6 · Hakone · Open-Air Museum").
+  - A crest tap or "All" now pauses the player. Before, a playing trip pulled the camera back after a Hakone tap.
+- **Not used any more (kept, not deleted; Cade decides):** assets/web/cap-left.png, cap-right.png, mist.png, koi-marker.png. The sw.js cache no longer lists them. Cache v9.
+
+### Known issues after the trip list pass
+
+- On iPhone landscape the full-Japan frame is small (about 100 px), because the free area is small.
+- On a person switch, the pins show the old set for a moment until the reload ends.
+- `trip.refresh()` after a swap resets the player to the saved day.
+- On desktop, pins under the open list are not hidden.
+- Nobody has tested this pass on a real iPhone or iPad.
 
 ## Working method (Cade's expectations)
 

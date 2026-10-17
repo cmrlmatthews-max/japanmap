@@ -8,7 +8,8 @@ const TALL_PX = 34;                     // height on screen, CSS px
 const LIFT = 0.3;                       // world units above the path
 const FADE_S = 0.25;                    // fade in / out
 const HOP_PX = 7, HOP_S = 0.5;          // hop height on screen and period
-const MOVE_PX_S = 4;                    // faster than this on screen counts as walking
+const MOVE_PX_S = 4;
+const SIDE_PX = 22;                     // at a stop he steps aside, so he does not stand on the place's pin                    // faster than this on screen counts as walking
 const INK = '#2C2C2A', VERM = '#C8341E', PAPER = '#F5EFE0';
 
 // ---------- the stand-in pilgrim: 96 x 128, facing right, feet on the bottom edge ----------
@@ -85,9 +86,9 @@ export function initMarker(ctx, route, trip) {
   scene.add(mesh);
 
   // --- per frame ---
-  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _last = new THREE.Vector3();
+  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _last = new THREE.Vector3(), _o = new THREE.Vector3();
   let userOn = true, alpha = 0, placed = false, haveLast = false;
-  let face = 1, faceTo = 1, phase = 0, walkHold = 0;                     // face: +1 right on screen, -1 left (eased); phase counts hops
+  let face = 1, faceTo = 1, phase = 0, walkHold = 0, side = 0;                     // face: +1 right on screen, -1 left (eased); phase counts hops
 
   function wppAt(point, dist, h) {                                       // world units per CSS px at this point (same rule as the pins)
     const bl = view ? view.blend : 0;
@@ -129,13 +130,16 @@ export function initMarker(ctx, route, trip) {
     const top = Math.pow(s, 4);                                          // a small stretch at the top
     const sy = 1 - 0.1 * land + 0.04 * top, sx = 1 + 0.08 * land - 0.02 * top;
 
+    side += ((walkHold > 0 ? 0 : 1) - side) * (1 - Math.exp(-dt * 6));   // ease aside at a stop, back onto the line when he walks
+    _o.copy(_r).multiplyScalar(-face * SIDE_PX * wpp * side);            // the side he came from
+
     const h = TALL_PX * wpp, w = h * aspect;
     fig.scale.set(face * w * sx, h * sy, 1);
-    fig.position.copy(_u).multiplyScalar(HOP_PX * wpp * s);
+    fig.position.copy(_u).multiplyScalar(HOP_PX * wpp * s).add(_o);
     fig.material.opacity = alpha;
     const air = 1 - 0.45 * s;                                            // the shadow shrinks and fades in the air
     shadow.scale.set(Math.max(w, h * 0.5) * 0.9 * air, h * 0.2 * air, 1);
-    shadow.position.set(0, 0, 0);
+    shadow.position.copy(_o);
     shMat.opacity = alpha * 0.4 * air;
   }
 
