@@ -35,6 +35,20 @@ export function drawTraveler() {
   return cv;
 }
 
+function haloed(im) {                                                   // paper silhouette stamped round the image, then the image on top
+  try {
+    const r = Math.max(2, Math.round(im.height * 0.014)), W = im.width + 2 * r, H = im.height + r;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d'); if (!g) return null;
+    const sil = document.createElement('canvas'); sil.width = im.width; sil.height = im.height;
+    const sg = sil.getContext('2d'); sg.drawImage(im, 0, 0); sg.globalCompositeOperation = 'source-in'; sg.fillStyle = PAPER; sg.fillRect(0, 0, sil.width, sil.height);
+    g.globalAlpha = 0.9;
+    for (let i = 0; i < 16; i++) { const a = i * Math.PI / 8; g.drawImage(sil, r + Math.cos(a) * r, r + Math.sin(a) * r); }
+    g.globalAlpha = 1; g.drawImage(im, r, r);
+    return cv;
+  } catch (e) { return null; }
+}
+
 function drawShadow() {                                                 // a soft ink ellipse
   const cv = document.createElement('canvas'); cv.width = 64; cv.height = 32;
   const g = cv.getContext('2d'); if (!g) return cv;
@@ -56,7 +70,9 @@ export function initMarker(ctx, route, trip) {
   setMap(new THREE.CanvasTexture(drawTraveler()), 0.75);
   new THREE.TextureLoader().load(IMG, (t) => {
     const im = t.image;
-    setMap(t, im && im.width && im.height ? im.width / im.height : 0.75);
+    if (!(im && im.width && im.height)) { setMap(t, 0.75); return; }
+    const h = haloed(im);                                                // the image with the same thin paper halo as the drawn one
+    if (h) { t.dispose(); setMap(new THREE.CanvasTexture(h), h.width / h.height); } else setMap(t, im.width / im.height);
   }, undefined, () => { /* no image yet: the drawn pilgrim stays */ });
 
   const fig = new THREE.Sprite(mat);                                     // feet at the bottom centre

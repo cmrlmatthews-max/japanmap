@@ -1,6 +1,6 @@
 /* ---- line legend (js/legend.js): a "Lines" tab directly under the map key; the panel opens to the left of the key ---- */
 #legend {
-  position: absolute; z-index: 6;
+  position: absolute; z-index: 10;   /* above the docked page and the info card (z 8, 9): the open panel reaches past the key's height */
   right: calc(12px + var(--sar));
   top: calc(var(--key-t) + 104px + 6px);
   display: flex; flex-direction: column; align-items: flex-end;
