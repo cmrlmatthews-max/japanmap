@@ -1,15 +1,14 @@
-// The traveler: the marker for the trip. One pilgrim in ink (straw kasa hat, walking staff, side view) who hops along the route
+// The traveler: the marker for the trip. One pilgrim in ink (straw kasa hat, walking staff, side view) who glides along the route
 // while the trip plays, is scrubbed or rests at a stop. He is a sprite that always faces the screen, feet on the trip cursor (trip.progressPoint),
-// TALL_PX high on screen, drawn above the pins. He mirrors to face the way he walks (on screen), hops a few px, and stands still at a stop.
+// TALL_PX high on screen, drawn above the pins. He mirrors to face the way he walks (on screen), glides with no bounce, and steps aside at a stop.
 // Image: assets/web/traveler.png (transparent, figure facing right, feet at the bottom edge). Until it loads, or if it is missing, a drawn pilgrim stands in.
 
 const IMG = 'assets/web/traveler.png';
 const TALL_PX = 34;                     // height on screen, CSS px
 const LIFT = 0.3;                       // world units above the path
 const FADE_S = 0.25;                    // fade in / out
-const HOP_PX = 7, HOP_S = 0.5;          // hop height on screen and period
-const MOVE_PX_S = 4;
-const SIDE_PX = 22;                     // at a stop he steps aside, so he does not stand on the place's pin                    // faster than this on screen counts as walking
+const MOVE_PX_S = 4;                    // faster than this on screen counts as walking
+const SIDE_PX = 22;                     // at a stop he steps aside, so he does not stand on the place's pin
 const INK = '#2C2C2A', VERM = '#C8341E', PAPER = '#F5EFE0';
 
 // ---------- the stand-in pilgrim: 96 x 128, facing right, feet on the bottom edge ----------
@@ -88,7 +87,7 @@ export function initMarker(ctx, route, trip) {
   // --- per frame ---
   const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _last = new THREE.Vector3(), _o = new THREE.Vector3();
   let userOn = true, alpha = 0, placed = false, haveLast = false;
-  let face = 1, faceTo = 1, phase = 0, walkHold = 0, side = 0;                     // face: +1 right on screen, -1 left (eased); phase counts hops
+  let face = 1, faceTo = 1, walkHold = 0, side = 0;                               // face: +1 right on screen, -1 left (eased)
 
   function wppAt(point, dist, h) {                                       // world units per CSS px at this point (same rule as the pins)
     const bl = view ? view.blend : 0;
@@ -103,7 +102,7 @@ export function initMarker(ctx, route, trip) {
     const live = userOn && state.route !== false && !!trip && !!trip.cursor && typeof trip.progressPoint === 'function' && !!trip.progressPoint(P, T.set(0, 0, 0));
     alpha = Math.min(1, Math.max(0, alpha + (live ? dt : -dt) / FADE_S));
     mesh.visible = alpha > 0.004;
-    if (!mesh.visible) { placed = false; haveLast = false; phase = 0; return; }
+    if (!mesh.visible) { placed = false; haveLast = false; return; }
     if (live) { placed = true; mesh.position.set(P.x, P.y + LIFT, P.z); }
     if (!placed) { mesh.visible = false; return; }
 
@@ -120,27 +119,16 @@ export function initMarker(ctx, route, trip) {
     if (live && haveLast && dt > 0) walking = _d.subVectors(mesh.position, _last).length() / wpp / dt > MOVE_PX_S;
     _last.copy(mesh.position); haveLast = live;
     walkHold = walking ? 0.12 : Math.max(0, walkHold - dt);
-    const hops = state.cameraMoves !== false && !reduced();
-    const go = hops && walkHold > 0;
-    if (go) phase += dt / HOP_S;
-    else { const next = Math.ceil(phase - 1e-6); phase = Math.min(next, phase + dt / HOP_S); if (phase >= next - 1e-6) phase = next; }   // finish the landing, then stand
-    if (phase > 1e6) phase %= 1;
-    const s = Math.abs(Math.sin(Math.PI * phase));                       // 0 on the ground, 1 at the top, one hop per HOP_S
-    const land = Math.max(0, 1 - s / 0.3);                               // squash just after and before touching down
-    const top = Math.pow(s, 4);                                          // a small stretch at the top
-    const sy = 1 - 0.1 * land + 0.04 * top, sx = 1 + 0.08 * land - 0.02 * top;
-
     side += ((walkHold > 0 ? 0 : 1) - side) * (1 - Math.exp(-dt * 6));   // ease aside at a stop, back onto the line when he walks
     _o.copy(_r).multiplyScalar(-face * SIDE_PX * wpp * side);            // the side he came from
 
     const h = TALL_PX * wpp, w = h * aspect;
-    fig.scale.set(face * w * sx, h * sy, 1);
-    fig.position.copy(_u).multiplyScalar(HOP_PX * wpp * s).add(_o);
+    fig.scale.set(face * w, h, 1);
+    fig.position.copy(_o);
     fig.material.opacity = alpha;
-    const air = 1 - 0.45 * s;                                            // the shadow shrinks and fades in the air
-    shadow.scale.set(Math.max(w, h * 0.5) * 0.9 * air, h * 0.2 * air, 1);
+    shadow.scale.set(Math.max(w, h * 0.5) * 0.9, h * 0.2, 1);
     shadow.position.copy(_o);
-    shMat.opacity = alpha * 0.4 * air;
+    shMat.opacity = alpha * 0.4;
   }
 
   return {

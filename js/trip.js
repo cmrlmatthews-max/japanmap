@@ -7,7 +7,8 @@ import { iconSVG } from './icons.js';
 import { loadItinerary } from './itinerary.js';
 import { linesKey } from './legend.js';
 
-const PAUSE_S = 3;                                  // seconds held at each stop
+const PLAY_SPEED = 1.5;                             // playback speed (1 = the original pace; 1.5 = 50% faster)
+const PAUSE_S = 3 / PLAY_SPEED;                     // seconds held at each stop
 const STOP_DIST = 34, STOP_DIST_2D = 40, STOP_POLAR = 45;      // the stop pose: same distance as a place fly-to (the flat map sits a little farther)
 const VIEW = { polar: 52, az: 22 };                 // the region view angle (day framing)
 const LS_KEY = 'jmap.trip.v1';
@@ -79,9 +80,9 @@ export function initTrip(ctx, route) {
   function legIndex(d, k) { return d === 0 ? k - 1 : k; }                // the leg that arrives at stop k of day d
   function hopSeconds(d, li, leg) {
     const L = safe(() => route.legLength(d, li), NaN);
-    if (Number.isFinite(L)) return 6 + 2 * clamp((L - 2) / 60, 0, 1);
+    if (Number.isFinite(L)) return (6 + 2 * clamp((L - 2) / 60, 0, 1)) / PLAY_SPEED;
     const m = leg && Number.isFinite(leg.minutes) ? leg.minutes : 30;
-    return m <= 20 ? 6 : m >= 90 ? 8 : 6 + 2 * (m - 20) / 70;
+    return (m <= 20 ? 6 : m >= 90 ? 8 : 6 + 2 * (m - 20) / 70) / PLAY_SPEED;
   }
   function buildTimeline() {
     segs = []; dayStart = []; let t = 0, prevId = null;
@@ -485,7 +486,7 @@ export function initTrip(ctx, route) {
   };
   scrub.addEventListener('pointerup', scrubEnd); scrub.addEventListener('pointercancel', scrubEnd);
   scrub.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const was = playing; pause(); commitSeek(time + (e.key === 'ArrowRight' ? 1 : -1) * (PAUSE_S + 6)); if (was) play(); }
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); const was = playing; pause(); commitSeek(time + (e.key === 'ArrowRight' ? 1 : -1) * (PAUSE_S + 6 / PLAY_SPEED)); if (was) play(); }
   });
 
   playBtn.addEventListener('click', () => { playing ? pause() : play(); });

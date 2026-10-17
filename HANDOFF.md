@@ -23,7 +23,7 @@ japan-3d-map/
 ├── js/app.js                  ← renderer, ONE camera with two projections (2D orthographic blend, 3D perspective), region flights, place fly-to, free-area aiming, labels, mist
 ├── js/flatmap.js              ← flat map layers under the terrain: sea wash with wave tile, land sheet, coast ink ribbon, Lake Biwa
 ├── js/inset.js                ← the map key: a small Japan with the current view framed in vermilion
-├── js/marker.js               ← the hopping ink pilgrim that walks the route in the fly-through
+├── js/marker.js               ← the ink pilgrim that glides along the route in the fly-through
 ├── js/itinerary.js            ← loads an itinerary and applies this device's swaps (shared by route.js and trip.js)
 ├── js/list.js                 ← the Your Trip list: days, stops, other options, swap, undo, reset
 ├── js/art.js                  ← ink paintings on the sea (data/art.json)
@@ -344,7 +344,7 @@ Cade's decisions, all final:
 - **Default view:** the full-Japan flat map, caption "Japan". "All" (`data-region="japan"`) goes there. "Your Trip" (`data-region="overview"`) goes to the central Japan overview.
 - **Sea art:** 3 to 4 times bigger, on open sea for the Japan frame (data/art.json). It fades from distance 180 to 450.
 - **Mist and Sound:** removed completely. The mist and sound icons stay in js/icons.js, but nothing uses them.
-- **Traveler marker** (js/marker.js): an ink pilgrim, assets/web/traveler.png (Gemini, 2026-10-17). It replaces the koi. The figure is a camera-facing sprite, 34 px tall, with its feet on the trip cursor. It mirrors to face the direction of travel. It hops 7 px every 0.5 s while it moves on screen, and it squashes on landing. A shadow sits under it. At a stop it steps 22 px aside, off the pin. With Motion off or reduced motion, it glides without hops. `drawTraveler()` is the stand-in.
+- **Traveler marker** (js/marker.js): an ink pilgrim, assets/web/traveler.png (Gemini, 2026-10-17). It replaces the koi. The figure is a camera-facing sprite, 34 px tall, with its feet on the trip cursor. It mirrors to face the direction of travel. It glides along the route with no hop or bounce (changed 2026-10-17). A shadow sits under it. At a stop it steps 22 px aside, off the pin. Trip playback runs at 1.5x the original pace: `PLAY_SPEED` in js/trip.js divides each leg time and the 3 s stop pause. `drawTraveler()` is the stand-in.
 - **Bug fixes:**
   - The player caption now uses the stop's own region ("Day 6 · Hakone · Open-Air Museum").
   - A crest tap or "All" now pauses the player. Before, a playing trip pulled the camera back after a Hakone tap.
