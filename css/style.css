@@ -138,6 +138,11 @@ button { font-family: inherit; }
 #card .row { display: grid; grid-template-columns: 112px 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--grey-l); font-size: 14px; line-height: 1.5; }
 #card .row dt { margin: 0; color: var(--grey-d); font-size: 13px; letter-spacing: .04em; }
 #card .row dd { margin: 0; }
+#card .gmap { display: flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 6px; padding: 0 2px; color: var(--vermilion); font-size: 14px; letter-spacing: .03em; text-decoration: none; }
+#card .gmap[hidden] { display: none; }
+#card .gmap svg { flex: none; width: 16px; height: 16px; }
+#card .gmap b { font-weight: 500; font-size: 17px; line-height: 1; }
+#card .gmap:active { opacity: .6; }
 #card .btns { display: flex; gap: 10px; margin-top: 18px; }
 #card .btn { flex: 1; min-height: 44px; padding: 10px 14px; font-size: 15px; letter-spacing: .04em; border-radius: 4px 3px 5px 3px; cursor: pointer; transition: background .3s, color .3s; }
 #card .btn.add { background: var(--vermilion); color: var(--paper); border: 2px solid var(--vermilion); }

@@ -170,6 +170,11 @@ export function initUI(cb) {
     add('Booking', p.booking);
     if ((p.category === 'ryokan' || p.category === 'onsen') && p.tier) add('Price tier', cap(p.tier));
     rows.hidden = !rows.children.length;
+    // Google Maps: the place listing, found by the English and the Japanese name (hours, photos, directions to the entrance).
+    // On iPhone the link opens the Google Maps app when it is installed, otherwise Google Maps in Safari.
+    const gm = $('.gmap', card), q = [p.name, p.kanji].filter(Boolean).join(' ') || (Number.isFinite(p.lat) && Number.isFinite(p.lng) ? `${p.lat},${p.lng}` : '');
+    gm.hidden = !q;
+    if (q) { gm.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(q); gm.setAttribute('aria-label', `Open ${p.name || 'this place'} in Google Maps`); }
     const c = Store.choice(p.id);
     const addB = $('.btn.add', card), passB = $('.btn.pass', card);
     addB.textContent = c === 'add' ? 'In trip — undo' : 'Add to trip';

@@ -29,6 +29,31 @@ const TIP_PLAY = 'Play the trip', TIP_PAUSE = 'Pause';
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;   // same curve as the app's flights
+
+// ---------- the walk: one pace on screen for every leg ----------
+// The camera follows the traveler and pulls back by r(s) = a + b sin(pi s) over a leg (s = 0..1, the leg's shape parameter).
+// The fraction of the path walked, E(s), grows in step with r(s), so the map moves under him at the same speed on screen all along the leg.
+// The leg time comes from its length on screen at that pace. Long legs pull back further, so no leg is longer than PATH_MAX screen heights.
+// A short ramp at each end (RAMP_S) starts and stops him softly; very short walks take at least HOP_MIN_S.
+const PACE = 0.105;                                 // screen heights per second
+const PATH_MAX = 0.84;                              // longest leg on screen, in screen heights (about 8 s)
+const HOP_MIN_S = 3, RAMP_S = 0.4;
+const FOV_K = 2 * Math.tan(21 * Math.PI / 180);     // 2 tan(fov / 2), camera fov 42 degrees: world units per screen height per unit of distance
+function hopShape(L, a) {                           // L: leg length (world units), a: the stop distance
+  const bOld = clamp(0.35 * L, 3, 80);              // the earlier pull-back, kept as the least for mid-length legs
+  const bNeed = (L / (FOV_K * PATH_MAX) - a) * Math.PI / 2;
+  const b = Math.max(bOld, bNeed), path = L / (FOV_K * (a + 2 * b / Math.PI));
+  return { a, b, T: Math.max(HOP_MIN_S, path / PACE) };
+}
+function warp(k, T) {                               // time fraction -> shape parameter: a short ramp in, a constant middle, a short ramp out
+  const r = clamp(RAMP_S / Math.max(T, 1e-3), 0.001, 0.25), v = 1 / (1 - r);
+  k = clamp(k, 0, 1);
+  if (k < r) return 0.5 * v * k * k / r;
+  if (k > 1 - r) { const q = 1 - k; return 1 - 0.5 * v * q * q / r; }
+  return v * (k - r / 2);
+}
+const along = (sh, s) => (sh.a * s + sh.b * (1 - Math.cos(Math.PI * s)) / Math.PI) / (sh.a + 2 * sh.b / Math.PI);   // fraction of the path at s
+const walkAt = (seg, k) => seg.shape ? along(seg.shape, warp(k, seg.t1 - seg.t0)) : ease(k);                            // fraction of the path at time fraction k
 const rad = (d) => d * Math.PI / 180, deg = (r) => r * 180 / Math.PI;
 const cap = (s) => String(s || '').replace(/^./, (c) => c.toUpperCase());
 const safe = (fn, fallback) => { try { const v = fn(); return v === undefined ? fallback : v; } catch (e) { return fallback; } };
@@ -78,11 +103,11 @@ export function initTrip(ctx, route) {
 
   // ---------- timeline ----------
   function legIndex(d, k) { return d === 0 ? k - 1 : k; }                // the leg that arrives at stop k of day d
-  function hopSeconds(d, li, leg) {
+  function hopTiming(d, li, leg) {                                       // { T, shape }: shape is null when the route layer has no path (old timing, eased)
     const L = safe(() => route.legLength(d, li), NaN);
-    if (Number.isFinite(L)) return (6 + 2 * clamp((L - 2) / 60, 0, 1)) / PLAY_SPEED;
+    if (Number.isFinite(L) && L > 0) { const sh = hopShape(L, STOP_DIST_2D); return { T: sh.T, shape: sh }; }
     const m = leg && Number.isFinite(leg.minutes) ? leg.minutes : 30;
-    return (m <= 20 ? 6 : m >= 90 ? 8 : 6 + 2 * (m - 20) / 70) / PLAY_SPEED;
+    return { T: (m <= 20 ? 6 : m >= 90 ? 8 : 6 + 2 * (m - 20) / 70) / PLAY_SPEED, shape: null };
   }
   function buildTimeline() {
     segs = []; dayStart = []; let t = 0, prevId = null;
@@ -90,7 +115,7 @@ export function initTrip(ctx, route) {
       dayStart[d] = t;
       (day.stops || []).forEach((id, k) => {
         const li = legIndex(d, k), leg = (day.legs || [])[li] || null;
-        if (prevId) { const dur = hopSeconds(d, li, leg); segs.push({ type: 'hop', d, k, li, id, from: prevId, leg, t0: t, t1: t + dur }); t += dur; }
+        if (prevId) { const { T: dur, shape } = hopTiming(d, li, leg); segs.push({ type: 'hop', d, k, li, id, from: prevId, leg, shape, t0: t, t1: t + dur }); t += dur; }
         segs.push({ type: 'pause', d, k, li: prevId ? li : -1, id, t0: t, t1: t + PAUSE_S }); t += PAUSE_S;
         prevId = id;
       });
@@ -134,16 +159,17 @@ export function initTrip(ctx, route) {
     const T = controls.target.clone(), off = camera.position.clone().sub(T), sp = new THREE.Spherical().setFromVector3(off);
     const az = deg(Math.atan2(off.x, off.z));
     const path = legPath(seg.d, seg.li, seg), endPose = stopPose(seg.id, az);
-    const e0 = ease(k0), P0 = sample(path, e0, new THREE.Vector3()), P1 = sample(path, 1, new THREE.Vector3());
-    const lift = clamp(0.35 * path.len, 3, 80);               // a calm rise: longer legs lift higher
-    return { segIdx: entered, mode: modeNow(), path, az, endPose, e0, k0, lift, r_c: sp.radius, phi_c: deg(sp.phi), d_c: T.clone().sub(P0), d1: endPose.target.clone().sub(P1), cut: false };
+    const e0 = walkAt(seg, k0), P0 = sample(path, e0, new THREE.Vector3()), P1 = sample(path, 1, new THREE.Vector3());
+    const lift = seg.shape ? Math.min(seg.shape.b, Math.max(3, controls.maxDistance - stopDist())) : clamp(0.35 * path.len, 3, 80);   // the pull-back: longer legs rise higher (see hopShape), never past the mode's zoom-out cap
+    const sOf = (k) => seg.shape ? warp(k, seg.t1 - seg.t0) : k;
+    return { segIdx: entered, mode: modeNow(), seg, sOf, path, az, endPose, e0, k0, s0: sOf(k0), lift, r_c: sp.radius, phi_c: deg(sp.phi), d_c: T.clone().sub(P0), d1: endPose.target.clone().sub(P1), cut: false };
   }
   function applyHop(c, k) {
-    const e = ease(k), u = (1 - c.e0) < 1e-6 ? 1 : clamp((e - c.e0) / (1 - c.e0), 0, 1);
+    const e = walkAt(c.seg, k), sk = c.sOf(k), u = (1 - c.e0) < 1e-6 ? 1 : clamp((e - c.e0) / (1 - c.e0), 0, 1);
     sample(c.path, e, _a);
     const target = _a.add(_b.copy(c.d_c).lerp(c.d1, u));
     if (is2d()) target.y = 0;                                                  // the flat map keeps its look-at point on the ground plane
-    const r = lerp(c.r_c - c.lift * Math.sin(Math.PI * c.k0), stopDist(), u) + c.lift * Math.sin(Math.PI * k);   // (2D: the lift is a zoom out and in)
+    const r = lerp(c.r_c - c.lift * Math.sin(Math.PI * c.s0), stopDist(), u) + c.lift * Math.sin(Math.PI * sk);   // (2D: the lift is a zoom out and in)
     const phi = lerp(c.phi_c, STOP_POLAR, u);
     controls.target.copy(target);
     camera.position.copy(target).add(ctx.sph(r, phi, c.az));
@@ -162,7 +188,7 @@ export function initTrip(ctx, route) {
     if (!hopCtx || hopCtx.segIdx !== entered || hopCtx.cut || hopCtx.mode !== modeNow()) hopCtx = captureHop(seg, k);      // (also after a 2D/3D switch: the old capture is for the other projection)
     controls.enabled = false;
     applyHop(hopCtx, k);
-    R.prog(seg.d, seg.li, ease(k));
+    R.prog(seg.d, seg.li, walkAt(seg, k));
   }
 
   // ---------- entering a segment ----------
@@ -237,7 +263,7 @@ export function initTrip(ctx, route) {
     time = clamp(t, 0, duration);
     const seg = segs[segAt(time)]; if (!seg) return;
     R.day(seg.d); showDay(seg.d);
-    if (seg.type === 'hop') R.prog(seg.d, seg.li, ease(clamp((time - seg.t0) / (seg.t1 - seg.t0), 0, 1)));
+    if (seg.type === 'hop') R.prog(seg.d, seg.li, walkAt(seg, clamp((time - seg.t0) / (seg.t1 - seg.t0), 0, 1)));
     else R.prog(seg.d, seg.li, seg.li < 0 ? 0 : 1);
     cursorOn = true; paint(true);
   }
@@ -566,7 +592,7 @@ export function initTrip(ctx, route) {
       if (!cursorOn || !segs.length) return null;
       const seg = segs[segAt(time)]; if (!seg) return null;
       if (seg.type !== 'hop') return { day: seg.d, leg: seg.li, t: seg.li < 0 ? 0 : 1 };
-      return { day: seg.d, leg: seg.li, t: state.cameraMoves || dragging ? ease(clamp((time - seg.t0) / (seg.t1 - seg.t0), 0, 1)) : 1 };   // still camera: the cut already shows the whole hop (not while scrubbing)
+      return { day: seg.d, leg: seg.li, t: state.cameraMoves || dragging ? walkAt(seg, clamp((time - seg.t0) / (seg.t1 - seg.t0), 0, 1)) : 1 };   // still camera: the cut already shows the whole hop (not while scrubbing)
     },
     // the cursor's world point (into `out`, or null when off) and, when given, its heading in `tangent` (unit; zero when there is none, as at the first stop)
     progressPoint(out = new THREE.Vector3(), tangent = null) {

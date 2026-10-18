@@ -489,3 +489,7 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 **Trail (2026-10-18):** while the traveler is on the map, only the current leg shows in full ink. The leg before it shows at 40%. The leg before that fades to zero over 1 s (`TRAIL_S` in `route.js`; uniforms `uTrail`, `uPLegF`). Older legs are hidden. With no traveler (opening view, a tapped day), the full route shows as before.
 
 **Traveler at stops (2026-10-18):** he walks to a spot 22 px beside the pin. The side offset eases in over the last 20% of a leg and out over the first 20% of the next one, so he never steps or jumps at a stop. The side is chosen once per stop, and his facing is locked from 75% of a leg, so a bend at the path end cannot flip him.
+
+**Walk pace (2026-10-18):** every leg moves at one pace on screen (`PACE` = 0.105 screen heights per second, in `trip.js`). The camera pulls back by `a + b sin(pi s)` over a leg, and the walked fraction grows in step with it (`along()`), so the speed stays the same all along the leg. Long legs pull back further, so no leg is longer than `PATH_MAX` (0.84 screen heights, about 8 s). Very short walks take at least `HOP_MIN_S` (3 s). A 0.4 s ramp (`RAMP_S`) starts and stops each leg. In 3D the pull-back stops at the zoom-out cap.
+
+**Google Maps link (2026-10-18):** each place card has "Open in Google Maps". It searches the English and the Japanese name together, so it opens the real listing (hours, photos, directions). On iPhone it opens the Google Maps app when it is installed.
