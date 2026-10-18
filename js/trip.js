@@ -587,7 +587,8 @@ export function initTrip(ctx, route) {
     get playing() { return playing; }, get time() { return time; }, get duration() { return duration; },
     get segments() { return segs; }, get day() { return activeDay; }, get dayStarts() { return dayStart; }, get open() { return open; },
     setOpen, get maxStep() { return maxStep; }, set maxStep(v) { maxStep = +v || 0.25; },     // test hook: software GL renders ~1 frame per second
+    ready: null,                                                                              // the first load (the app waits for it before the opening frame)
   };
-  load();
+  api.ready = load().catch(() => {});
   return api;
 }

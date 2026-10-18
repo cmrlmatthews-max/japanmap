@@ -484,4 +484,8 @@ When Gemini is open and waiting in Chrome, Claude runs the prompts and downloads
 - OSM renamed the Hakone Tozan Railway to 小田急箱根鉄道線 in 2024. Search both names.
 - Chrome blocks a second automatic download per site (overpass-api.de too). Use osascript curl instead.
 
-**Opening frame (2026-10-17):** `japanPose()` centres whole Japan on the page's middle line (the title axis), as far as the free area allows. The opening fit ran while the itinerary sheet was still open, so the map sat left of centre once the sheet folded. `watchOpeningFrame()` now re-fits the whole-Japan view with a 1.6 s glide whenever the layout changes, until the user first touches the map or leaves the "All" view.
+**Opening frame (2026-10-18):** `japanPose()` centres whole Japan on the page's middle line (the title axis), as far as the free area allows. `settleLayout()` holds the loading wash until the trip has loaded and the web fonts have arrived (cap 2.5 s), then the opening is fitted once. No re-fit glide runs after that. A real window resize or rotation moves the whole-Japan view at once (`cutToPose`), until the user first touches the map.
+
+**Trail (2026-10-18):** while the traveler is on the map, only the current leg shows in full ink. The leg before it shows at 40%. The leg before that fades to zero over 1 s (`TRAIL_S` in `route.js`; uniforms `uTrail`, `uPLegF`). Older legs are hidden. With no traveler (opening view, a tapped day), the full route shows as before.
+
+**Traveler at stops (2026-10-18):** he walks to a spot 22 px beside the pin. The side offset eases in over the last 20% of a leg and out over the first 20% of the next one, so he never steps or jumps at a stop. The side is chosen once per stop, and his facing is locked from 75% of a leg, so a bend at the path end cannot flip him.

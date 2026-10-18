@@ -87,6 +87,7 @@ const frag = /* glsl */`
 precision highp float;
 uniform float uOpacity, uWalkFade, uTickFade, uCtxOpacity, uPx;
 uniform float uDay, uDayPrev, uDayMix, uPLeg, uPT;
+uniform float uTrail, uPLegF;   // trail: only the last legs behind the traveler show (uPLegF eases after uPLeg)
 varying vec2 vXY;
 varying float vS, vF, vLeg, vDay, vStyle, vSeed;
 
@@ -175,6 +176,10 @@ void main() {
     if (leg > uPLeg + 0.5) rv = 0.0;
     else if (leg > uPLeg - 0.5) rv = 1.0 - smoothstep(uPT - 0.004, uPT, vF);
     k *= rv;
+    if (uTrail > 0.5 && leg < uPLeg - 0.5) {                       // the trail: the leg before the current one in half ink, the one before that fades out, older legs gone
+      float age = max(0.0, uPLegF - leg);
+      k *= age <= 1.0 ? mix(1.0, 0.4, smoothstep(0.0, 1.0, age)) : 0.4 * (1.0 - smoothstep(1.0, 2.0, age));
+    }
     if (st > 7.5) k *= uTickFade;
     if (st > 1.5 && st < 2.5) k *= uWalkFade;
   }
@@ -374,6 +379,7 @@ export async function initRoute(ctx) {
     uRes: { value: new THREE.Vector2(1, 1) }, uNear: { value: 0.2 }, uK: { value: 10 },
     uOpacity: { value: 1 }, uWalkFade: { value: 1 }, uTickFade: { value: 0 }, uCtxOpacity: { value: 1 }, uPx: { value: 4 },
     uDay: { value: -1 }, uDayPrev: { value: -1 }, uDayMix: { value: 1 }, uPLeg: { value: 1e9 }, uPT: { value: 1 },
+    uTrail: { value: 0 }, uPLegF: { value: 0 },
   };
   const makeMat = () => new THREE.ShaderMaterial({
     vertexShader: vert, fragmentShader: frag, uniforms: U, transparent: true, depthWrite: false, depthTest: true, side: THREE.DoubleSide,
@@ -547,10 +553,18 @@ export async function initRoute(ctx) {
   }
 
   // --- state setters ---
+  // The trail (on while the traveler is on the map): uPLegF follows uPLeg at one leg per TRAIL_S, so the older legs fade, they do not blink.
+  // A jump back snaps it. A jump ahead of more than one leg keeps one fade step, so no long run of legs fades at once.
+  const TRAIL_S = 1;
   function applyProgress(day, leg, t) {
-    if (day === null || day === undefined) { U.uPLeg.value = 1e9; U.uPT.value = 1; return; }
+    const off = () => { U.uPLeg.value = 1e9; U.uPT.value = 1; U.uTrail.value = 0; };
+    if (day === null || day === undefined) { off(); return; }
     const L = legs[day] && legs[day][leg];
-    if (!L) { U.uPLeg.value = 1e9; U.uPT.value = 1; return; }
+    if (!L) { off(); return; }
+    const d = L.order - U.uPLegF.value;
+    if (U.uTrail.value < 0.5 || d < -0.001) U.uPLegF.value = L.order;
+    else if (d > 1.5) U.uPLegF.value = L.order - 1;                 // short legs or a jump ahead: keep at most one fade running
+    U.uTrail.value = 1;
     U.uPLeg.value = L.order; U.uPT.value = t >= 1 ? 1.02 : Math.max(0, +t || 0);
   }
   function applyDay() {
@@ -589,6 +603,7 @@ export async function initRoute(ctx) {
     const step = dt / 0.4;
     shown += Math.sign(wanted - shown) * Math.min(Math.abs(wanted - shown), step);
     U.uOpacity.value = shown;
+    if (U.uTrail.value > 0.5 && U.uPLegF.value < U.uPLeg.value) U.uPLegF.value = Math.min(U.uPLeg.value, U.uPLegF.value + dt / TRAIL_S);
     if (dayMix < 1) { dayMix = Math.min(1, dayMix + dt / 0.35); U.uDayMix.value = dayMix * dayMix * (3 - 2 * dayMix); }
     group.visible = shown > 0.004;
     updateLabels(dist, w, h);

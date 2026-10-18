@@ -321,8 +321,9 @@ function japanPose() {
   }
   return aimPose(new THREE.Vector3(f.cx, 0, f.cz), sph(D, VIEW.polar, VIEW.az), C);
 }
-// The opening frame is fitted before the side columns and the itinerary sheet take their final places (the sheet starts open, then folds).
-// So until the user first touches the map, the whole-Japan view re-fits itself (a short glide) whenever the layout changes.
+// The opening frame is fitted once, after the layout is final (see settleLayout in init), so it does not move after the page opens.
+// After that the whole-Japan view follows only a real change of window size or orientation, and it moves there at once (no glide),
+// until the user first touches the map or leaves the "All" view.
 function watchOpeningFrame() {
   let held = true, timer = 0;
   const release = () => { held = false; };
@@ -332,19 +333,17 @@ function watchOpeningFrame() {
   const refit = () => {
     if (held && state.region !== 'japan') held = false;               // the user went somewhere: the opening is over
     if (!ok()) return;
-    clearTimeout(timer);
-    timer = setTimeout(() => {
-      if (!ok()) return;
-      japanDist = fitBox(japanPts(), 0.06).D; applyModeLimits();      // the zoom-out cap follows the new free area too
-      const p = japanPose(), D = p.offset.length(), now = camera.position.distanceTo(controls.target);
-      const px = p.target.distanceTo(controls.target) / view.wpp(D);
-      if (px < 4 && Math.abs(D - now) / D < 0.02) return;              // already there
-      flyToPose(p, 1.6, { arc: 0 });
-    }, 350);
+    if (fly) { timer = setTimeout(refit, 300); return; }              // the intro flight is still running: wait for it to land
+    cutToPose(japanPose());                                           // resize() has already set the new zoom-out cap
   };
-  new MutationObserver(refit).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  addEventListener('resize', refit);
-  setTimeout(refit, 4300);                                          // once more as the intro flight lands
+  addEventListener('resize', () => { clearTimeout(timer); timer = setTimeout(refit, 200); });
+}
+// Wait until the side columns, the trip bar and the web fonts (the title and the crest labels change width when they arrive) have taken
+// their final places. The loading wash stays up meanwhile. Capped, so a slow font never holds the page.
+async function settleLayout() {
+  const cap = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+  await cap(Promise.all([trip && trip.ready, document.fonts && document.fonts.ready].filter(Boolean)), 2500);
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));   // two frames: styles applied and laid out
 }
 function frameJapan() {
   if (!view.is2d()) { flyToRegion('overview'); return; }
@@ -545,6 +544,7 @@ async function init() {
     addMark('region', REGION_INFO[id].en, p, id, REGIONS[id].side);
   }
 
+  await settleLayout();
   resize();
   syncModeUi();
   // intro: slow flight down to the open view. Flat map: all of Japan, straight down from 1.25 times the distance. 3D: the central Japan overview.

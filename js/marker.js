@@ -1,13 +1,12 @@
 // The traveler: the marker for the trip. One pilgrim in ink (straw kasa hat, walking staff, side view) who glides along the route
 // while the trip plays, is scrubbed or rests at a stop. He is a sprite that always faces the screen, feet on the trip cursor (trip.progressPoint),
-// TALL_PX high on screen, drawn above the pins. He mirrors to face the way he walks (on screen), glides with no bounce, and steps aside at a stop.
+// TALL_PX high on screen, drawn above the pins. He mirrors to face the way he walks (on screen), glides with no bounce, and walks to a spot beside each stop.
 // Image: assets/web/traveler.png (transparent, figure facing right, feet at the bottom edge). Until it loads, or if it is missing, a drawn pilgrim stands in.
 
 const IMG = 'assets/web/traveler.png';
 const TALL_PX = 34;                     // height on screen, CSS px
 const LIFT = 0.3;                       // world units above the path
 const FADE_S = 0.25;                    // fade in / out
-const MOVE_PX_S = 4;                    // faster than this on screen counts as walking
 const SIDE_PX = 22;                     // at a stop he steps aside, so he does not stand on the place's pin
 const INK = '#2C2C2A', VERM = '#C8341E', PAPER = '#F5EFE0';
 
@@ -85,9 +84,13 @@ export function initMarker(ctx, route, trip) {
   scene.add(mesh);
 
   // --- per frame ---
-  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _last = new THREE.Vector3(), _o = new THREE.Vector3();
-  let userOn = true, alpha = 0, placed = false, haveLast = false;
-  let face = 1, faceTo = 1, walkHold = 0, side = 0;                               // face: +1 right on screen, -1 left (eased)
+  // At a stop he stands beside the place, not on its pin. The side offset is part of the walk: it eases in over the last part of the
+  // leg and out over the first part of the next one, so he walks to a spot beside the pin and never steps or jumps once he is there.
+  // The side is chosen once per stop (the side he comes from) and his facing is locked over the arrival, so a bend at the end of
+  // the path cannot flip him to the other side.
+  const P = new THREE.Vector3(), T = new THREE.Vector3(), _f = new THREE.Vector3(), _d = new THREE.Vector3(), _r = new THREE.Vector3(), _u = new THREE.Vector3(), _o = new THREE.Vector3();
+  let userOn = true, alpha = 0, placed = false, faced = false;
+  let face = 1, faceTo = 1, side = 0, sideSign = -1;                         // face: +1 right on screen, -1 left (eased); sideSign: the side he stands on
 
   function wppAt(point, dist, h) {                                       // world units per CSS px at this point (same rule as the pins)
     const bl = view ? view.blend : 0;
@@ -97,12 +100,13 @@ export function initMarker(ctx, route, trip) {
     if (bl > 0) return 2 * tanHalf * dist / h * ((1 - bl) * depth + bl) / ((1 - bl) * dist + bl);
     return 2 * tanHalf * depth / h;
   }
+  const smooth = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   function update(dt, dist) {
     const live = userOn && state.route !== false && !!trip && !!trip.cursor && typeof trip.progressPoint === 'function' && !!trip.progressPoint(P, T.set(0, 0, 0));
     alpha = Math.min(1, Math.max(0, alpha + (live ? dt : -dt) / FADE_S));
     mesh.visible = alpha > 0.004;
-    if (!mesh.visible) { placed = false; haveLast = false; return; }
+    if (!mesh.visible) { placed = false; faced = false; return; }
     if (live) { placed = true; mesh.position.set(P.x, P.y + LIFT, P.z); }
     if (!placed) { mesh.visible = false; return; }
 
@@ -110,17 +114,23 @@ export function initMarker(ctx, route, trip) {
     _r.setFromMatrixColumn(camera.matrixWorld, 0); _u.setFromMatrixColumn(camera.matrixWorld, 1);   // screen right and up, in the world
     const wpp = wppAt(mesh.position, dist, canvas.clientHeight || 1);
 
-    // heading on screen: the tangent against the screen's right axis; a stop or a straight up / down heading keeps the last facing
-    if (live && T.lengthSq() > 1e-12) { const s = T.dot(_r) / T.length(); if (s > 0.15) faceTo = 1; else if (s < -0.15) faceTo = -1; }
-    face += (faceTo - face) * (1 - Math.exp(-dt * 20));
+    // where he is on the walk: on a hop t runs 0..1 (eased, as the ink), at a stop t is 1 (0 at a day's first stop, leg -1)
+    const pr = live && typeof trip.progress === 'function' ? trip.progress() : null;
+    const atStop = !pr || pr.t >= 1 || pr.leg < 0;
+    const k = atStop ? 1 : Math.max(1 - smooth(0, 0.2, pr.t), smooth(0.8, 1, pr.t));   // 1 beside the pin, 0 on the line
+    const arriving = !!pr && pr.leg >= 0 && pr.t >= 0.75 && state.cameraMoves !== false;             // the end of a leg, or resting after it: the facing stays as he arrived
 
-    // walking = the point is really moving on screen (paused, a stop and a still camera all stand still)
-    let walking = false;
-    if (live && haveLast && dt > 0) walking = _d.subVectors(mesh.position, _last).length() / wpp / dt > MOVE_PX_S;
-    _last.copy(mesh.position); haveLast = live;
-    walkHold = walking ? 0.12 : Math.max(0, walkHold - dt);
-    side += ((walkHold > 0 ? 0 : 1) - side) * (1 - Math.exp(-dt * 6));   // ease aside at a stop, back onto the line when he walks
-    _o.copy(_r).multiplyScalar(-face * SIDE_PX * wpp * side);            // the side he came from
+    // heading on screen: the tangent against the screen's right axis; locked over the arrival, and a straight up / down heading keeps the last facing
+    if (live && T.lengthSq() > 1e-12 && (!arriving || !faced)) {
+      const s = T.dot(_r) / T.length();
+      if (s > 0.15) faceTo = 1; else if (s < -0.15) faceTo = -1;
+      if (!faced) { face = faceTo; faced = true; }
+    }
+    face += (faceTo - face) * (1 - Math.exp(-dt * 14));
+
+    if (side < 0.02) sideSign = -faceTo;                                 // on the line: the next stop's side is the one he comes from
+    side += (k - side) * (1 - Math.exp(-dt * 12));                       // follows the walk closely; only smooths a seek
+    _o.copy(_r).multiplyScalar(sideSign * SIDE_PX * wpp * side);
 
     const h = TALL_PX * wpp, w = h * aspect;
     fig.scale.set(face * w, h, 1);
