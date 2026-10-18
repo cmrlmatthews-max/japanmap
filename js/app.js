@@ -33,9 +33,12 @@ controls.minPolarAngle = THREE.MathUtils.degToRad(20);   // 20° from straight d
 controls.maxPolarAngle = THREE.MathUtils.degToRad(70);   // 70° from straight down
 controls.screenSpacePanning = false;
 
-const prefersStill = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// Motion (camera moves and the traveler's walk) starts on, whatever the device's Reduce Motion setting: the moves are slow, and the app
+// is for two people. The Motion stamp turns it off, and this device remembers the choice ("jmap.motion": "on" | "off").
+const MOTION_KEY = 'jmap.motion';
+const savedMotion = (() => { try { return localStorage.getItem(MOTION_KEY); } catch (e) { return null; } })();
 let route = null, trip = null, flat = null, inset = null, marker = null, art = null;
-const state = { route: true, cameraMoves: !prefersStill, flying: false, region: 'japan', ready: false };
+const state = { route: true, cameraMoves: savedMotion !== 'off', flying: false, region: 'japan', ready: false };
 
 const tl = new THREE.TextureLoader();
 const tex = (p) => new Promise((res, rej) => tl.load(p, res, undefined, rej));
@@ -471,12 +474,13 @@ const endPointer = (e) => {
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 
 // ---------- layer seals ----------
+document.querySelector('#seals [data-layer="camera"]')?.classList.toggle('on', state.cameraMoves);   // the stamp shows the real state from the start
 document.querySelectorAll('#seals .seal').forEach(b => b.addEventListener('click', () => {
   const k = b.dataset.layer;
   b.classList.toggle('on');
   const on = b.classList.contains('on');
   if (k === 'route') { state.route = on; route && route.setVisible(on); marker && marker.setVisible(on); }   // never moves the camera
-  if (k === 'camera') state.cameraMoves = on;
+  if (k === 'camera') { state.cameraMoves = on; try { localStorage.setItem(MOTION_KEY, on ? 'on' : 'off'); } catch (e) { /* private mode */ } }
   if (k === '3d') { view.setMode(on ? '3d' : '2d'); syncModeUi(); }   // syncModeUi puts the stamp back if the switch was ignored (a mode flight is running)
 }));
 

@@ -1,7 +1,7 @@
 // Offline cache for the Home Screen app.
 // The page, scripts, styles and data files load network first: with a connection the app is always the newest version; offline it uses the saved copy.
 // Big files (terrain .bin, images) load cache first, for speed. Bump CACHE when a big file or the LOCAL list changes.
-const CACHE = 'nihon-no-tabi-v14';
+const CACHE = 'nihon-no-tabi-v15';
 const NET_TIMEOUT_MS = 4000;            // a slow network falls back to the saved copy after this
 const LOCAL = [
   './', './index.html', './manifest.json', './css/style.css', './css/route.css', './css/trip.css', './css/tips.css', './css/inset.css', './css/legend.css', './css/list.css',
